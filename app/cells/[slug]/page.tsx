@@ -7,6 +7,7 @@ import { AdvanceToCompleteForm } from '@/components/promotion/AdvanceToCompleteF
 import { StageTimeline } from '@/components/cell/StageTimeline'
 import { DeadlineCounter } from '@/components/cell/DeadlineCounter'
 import { JoinCellButton } from '@/components/cell/JoinCellButton'
+import { GenerateRetrospectiveButton } from '@/components/retrospective/GenerateRetrospectiveButton'
 import type { EzineStrategyConfig } from '@/lib/strategies/ezine'
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
@@ -77,15 +78,17 @@ export default async function CellPage({ params }: { params: { slug: string } })
     .eq('cell_id', cell.id)
     .order('joined_at', { ascending: true }) as { data: RawMember[] | null; error: unknown }
 
-  // Current user's display name for the header
+  // Current user's display name and admin status
   let userDisplayName: string | null = null
+  let isAdmin = false
   if (user) {
     const { data: p } = await supabase
       .from('profiles')
-      .select('display_name, username')
+      .select('display_name, username, is_admin')
       .eq('id', user.id)
-      .single() as { data: { display_name: string | null; username: string } | null; error: unknown }
+      .single() as { data: { display_name: string | null; username: string; is_admin: boolean } | null; error: unknown }
     userDisplayName = p?.display_name ?? p?.username ?? null
+    isAdmin = p?.is_admin ?? false
   }
 
   const config = cell.strategy_config as EzineStrategyConfig
@@ -105,6 +108,18 @@ export default async function CellPage({ params }: { params: { slug: string } })
   const quorumMet = memberCount >= cell.min_members
   const capReached = memberCount >= cell.member_cap
   const quorumPct = Math.min(100, Math.round((memberCount / cell.min_members) * 100))
+
+  // Retrospective availability (COMPLETE stage)
+  let retroStatus: 'GENERATING' | 'READY' | 'FAILED' | null = null
+  if (cell.current_stage === 'COMPLETE') {
+    const { data: retro } = await supabase
+      .from('retrospectives')
+      .select('status')
+      .eq('cell_id', cell.id)
+      .eq('cycle', cell.current_cycle)
+      .maybeSingle() as { data: { status: 'GENERATING' | 'READY' | 'FAILED' } | null; error: unknown }
+    retroStatus = retro?.status ?? null
+  }
 
   return (
     <div className="min-h-screen bg-off-white flex flex-col">
@@ -353,6 +368,14 @@ export default async function CellPage({ params }: { params: { slug: string } })
                 <Link href={`/cells/${cell.slug}/publication/${cell.current_cycle}`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
                   View Publication →
                 </Link>
+              )}
+              {cell.current_stage === 'COMPLETE' && (isOwner || isAdmin) && (
+                <GenerateRetrospectiveButton
+                  cellId={cell.id}
+                  cellSlug={cell.slug}
+                  cycle={cell.current_cycle}
+                  existingStatus={retroStatus}
+                />
               )}
             </div>
           </div>
