@@ -1,101 +1,147 @@
-import Image from "next/image";
+import Link from 'next/link'
 
-export default function Home() {
+const STAGES = [
+  { name: 'Forming', desc: 'Members join. Minimum met.' },
+  { name: 'Briefing', desc: 'Editor elected. Brief published.' },
+  { name: 'Submission', desc: 'Writers submit articles.' },
+  { name: 'Editing', desc: 'Editor reviews and assembles.' },
+  { name: 'Promotion', desc: 'Members promote the publication.' },
+  { name: 'Complete', desc: 'Scores updated. Cycle repeats.' },
+]
+
+export default function LandingPage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-off-white flex flex-col">
+      {/* Nav */}
+      <header className="border-b border-near-black/20 px-8 py-4 flex items-center justify-between">
+        <span className="font-serif-display text-xl text-near-black tracking-tight">Quorum</span>
+        <div className="flex items-center gap-6">
+          <Link
+            href="/login"
+            className="font-mono text-xs text-olive hover:text-near-black transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Sign in
+          </Link>
+          <Link
+            href="/signup"
+            className="font-mono text-xs bg-near-black text-off-white border border-near-black px-4 py-2 hover:bg-accent-red hover:border-accent-red transition-colors"
           >
-            Read our docs
-          </a>
+            Start a Cell →
+          </Link>
         </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero */}
+        <section className="px-8 pt-20 pb-16 border-b border-near-black/20">
+          <div className="max-w-4xl">
+            <h1 className="font-serif-display text-6xl leading-[1.05] text-near-black mb-8 max-w-2xl">
+              The deadline is not a suggestion.
+            </h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl">
+              <p className="font-body text-lg text-near-black/80 leading-relaxed">
+                Quorum runs structured publishing projects called{' '}
+                <strong className="font-semibold">Cells</strong>. A group of people. A brief.
+                A deadline. An automated system that enforces all three.
+              </p>
+              <p className="font-body text-lg text-near-black/80 leading-relaxed">
+                Members are assigned roles, earn merit, and face real consequences for missing
+                deadlines. No exceptions. No overrides. The process is the product.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="px-8 py-16 border-b border-near-black/20">
+          <p className="font-mono text-xs uppercase tracking-widest text-olive mb-10">
+            How a Cell works
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-0 border border-near-black/20">
+            {STAGES.map((stage, i) => (
+              <div
+                key={stage.name}
+                className={`px-4 py-5 ${i < STAGES.length - 1 ? 'border-r border-near-black/20' : ''}`}
+              >
+                <div className="font-mono text-xs text-olive mb-2">{String(i + 1).padStart(2, '0')}</div>
+                <div className="font-serif-display text-base mb-2">{stage.name}</div>
+                <div className="font-mono text-xs text-olive leading-relaxed">{stage.desc}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* The rules */}
+        <section className="px-8 py-16 border-b border-near-black/20">
+          <div className="max-w-3xl grid md:grid-cols-2 gap-12">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-olive mb-6">
+                The system, not you
+              </p>
+              <ul className="space-y-3">
+                {[
+                  'Editors are elected, not chosen.',
+                  'Deadlines are enforced automatically.',
+                  'Penalties are applied without appeal.',
+                  'Merit is memory — it follows you.',
+                ].map((rule) => (
+                  <li key={rule} className="flex gap-3 items-start">
+                    <span className="font-mono text-xs text-accent-red mt-0.5">—</span>
+                    <span className="font-body text-base text-near-black/80">{rule}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="font-mono text-xs uppercase tracking-widest text-olive mb-6">
+                What you get
+              </p>
+              <ul className="space-y-3">
+                {[
+                  'A published e-zine every cycle.',
+                  'Real editorial structure without managers.',
+                  'A public record of contribution.',
+                  'A group of people serious about finishing.',
+                ].map((item) => (
+                  <li key={item} className="flex gap-3 items-start">
+                    <span className="font-mono text-xs text-olive mt-0.5">+</span>
+                    <span className="font-body text-base text-near-black/80">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="px-8 py-20">
+          <p className="font-mono text-xs uppercase tracking-widest text-olive mb-6">
+            Ready?
+          </p>
+          <h2 className="font-serif-display text-4xl mb-8">
+            Start a Cell or join one.
+          </h2>
+          <div className="flex gap-4 flex-wrap">
+            <Link
+              href="/signup"
+              className="font-mono text-sm bg-near-black text-off-white border border-near-black px-6 py-3 hover:bg-accent-red hover:border-accent-red transition-colors"
+            >
+              Create an account →
+            </Link>
+            <Link
+              href="/cells"
+              className="font-mono text-sm border border-near-black text-near-black px-6 py-3 hover:bg-near-black hover:text-off-white transition-colors"
+            >
+              Browse open Cells
+            </Link>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="border-t border-near-black/20 px-8 py-4 flex items-center justify-between">
+        <span className="font-mono text-xs text-olive">Quorum</span>
+        <span className="font-mono text-xs text-olive">Constraint is the point.</span>
       </footer>
     </div>
-  );
+  )
 }
