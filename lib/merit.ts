@@ -157,4 +157,5 @@ export const MERIT_EVENT_LABELS: Record<string, string> = {
   missed_submission: 'Missed submission deadline',
   missed_promotion: 'Missed promotion deadline',
   second_offense: 'Second offense',
+  admin_adjustment: 'Admin adjustment',
 }

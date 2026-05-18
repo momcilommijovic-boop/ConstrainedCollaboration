@@ -89,6 +89,18 @@ export default async function TestUsersPage() {
         <div className="flex items-center gap-6">
           <span className="font-mono text-xs text-accent-red uppercase tracking-widest">Admin</span>
           <Link
+            href="/admin/users"
+            className="font-mono text-xs text-olive hover:text-near-black transition-colors"
+          >
+            Users
+          </Link>
+          <Link
+            href="/admin/cells"
+            className="font-mono text-xs text-olive hover:text-near-black transition-colors"
+          >
+            Cells
+          </Link>
+          <Link
             href="/admin/log"
             className="font-mono text-xs text-olive hover:text-near-black transition-colors"
           >
