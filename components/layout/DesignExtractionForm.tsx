@@ -1,7 +1,7 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { extractDesignTokens } from '@/app/actions/design'
 import { TokenEditor } from './TokenEditor'
 import type { DesignTokens } from '@/lib/layout/types'
@@ -28,8 +28,20 @@ interface Props {
 export function DesignExtractionForm({ cellId, cellSlug, existingTokens }: Props) {
   const [state, formAction] = useFormState(extractDesignTokens, { error: null })
   const [editingTokens, setEditingTokens] = useState<DesignTokens | null>(existingTokens)
+  const [tokenEditorKey, setTokenEditorKey] = useState(0)
+  const lastExtractedRef = useRef<DesignTokens | undefined>(undefined)
 
-  const tokens = state.tokens ?? editingTokens
+  // When extraction returns new tokens, sync them into editingTokens and
+  // remount TokenEditor so its useState picks up the fresh initial value
+  useEffect(() => {
+    if (state.tokens && state.tokens !== lastExtractedRef.current) {
+      lastExtractedRef.current = state.tokens
+      setEditingTokens(state.tokens)
+      setTokenEditorKey((k) => k + 1)
+    }
+  }, [state.tokens])
+
+  const tokens = editingTokens
 
   return (
     <div className="space-y-8">
@@ -97,6 +109,7 @@ export function DesignExtractionForm({ cellId, cellSlug, existingTokens }: Props
       {tokens && (
         <div className="border-t border-near-black/20 pt-8">
           <TokenEditor
+            key={tokenEditorKey}
             tokens={tokens}
             cellId={cellId}
             cellSlug={cellSlug}

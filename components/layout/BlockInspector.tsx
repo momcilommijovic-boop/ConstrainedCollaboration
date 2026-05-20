@@ -183,12 +183,37 @@ export function BlockInspector({ block, tokens, submissions, media, onUpdate, on
             </select>
           </div>
           <div className={fieldCls}>
-            <label className={labelCls}>Column width</label>
-            <select value={p.column_width} onChange={(e) => update({ column_width: e.target.value as 'narrow' | 'standard' | 'wide' })} className={selectCls}>
-              <option value="narrow">Narrow</option>
-              <option value="standard">Standard</option>
-              <option value="wide">Wide</option>
-            </select>
+            <label className={labelCls}>
+              Width — {(() => {
+                if (p.column_width === 'narrow') return 'Narrow (preset)'
+                if (p.column_width === 'standard') return 'Standard (preset)'
+                if (p.column_width === 'wide') return '100%'
+                return p.column_width
+              })()}
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range" min={20} max={100} step={5}
+                value={parseInt(
+                  p.column_width === 'wide' ? '100'
+                  : p.column_width === 'standard' ? '80'
+                  : p.column_width === 'narrow' ? '60'
+                  : p.column_width, 10) || 80}
+                onChange={(e) => update({ column_width: `${e.target.value}%` })}
+                className="flex-1"
+              />
+              <input
+                type="number" min={20} max={100}
+                value={parseInt(
+                  p.column_width === 'wide' ? '100'
+                  : p.column_width === 'standard' ? '80'
+                  : p.column_width === 'narrow' ? '60'
+                  : p.column_width, 10) || 80}
+                onChange={(e) => update({ column_width: `${e.target.value}%` })}
+                className="border border-near-black/20 bg-transparent px-2 py-1.5 font-mono text-xs focus:outline-none focus:border-near-black w-14 text-right"
+              />
+              <span className="font-mono text-xs text-olive">%</span>
+            </div>
           </div>
           <div className="flex items-center gap-2 mb-2">
             <input type="checkbox" id="drop_cap" checked={p.show_drop_cap} onChange={(e) => update({ show_drop_cap: e.target.checked })} />
@@ -281,6 +306,7 @@ export function BlockInspector({ block, tokens, submissions, media, onUpdate, on
     // ── Pull quote ───────────────────────────────────────────────────────────────
     case 'pull_quote': {
       const p = block.props as PullQuoteProps
+      const widthPct = parseInt(p.width ?? '100', 10) || 100
       return (
         <div className="p-4">
           <p className="font-mono text-xs uppercase tracking-widest text-olive mb-4">Pull Quote</p>
@@ -305,6 +331,30 @@ export function BlockInspector({ block, tokens, submissions, media, onUpdate, on
           <div className={fieldCls}>
             <label className={labelCls}>Attribution</label>
             <input type="text" value={p.attribution ?? ''} onChange={(e) => update({ attribution: e.target.value || null })} className={inputCls} placeholder="Optional" />
+          </div>
+          <div className={fieldCls}>
+            <label className={labelCls}>Width</label>
+            <div className="flex items-center gap-2">
+              <input type="range" min={20} max={100} step={5} value={widthPct}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10)
+                  update({ width: v >= 100 ? undefined : `${v}%` })
+                }}
+                className="flex-1" />
+              <input type="number" min={20} max={100} value={widthPct}
+                onChange={(e) => {
+                  const v = Math.max(20, Math.min(100, parseInt(e.target.value, 10) || 100))
+                  update({ width: v >= 100 ? undefined : `${v}%` })
+                }}
+                className={inputCls + ' w-16'} />
+              <span className="font-mono text-xs text-olive">%</span>
+            </div>
+          </div>
+          <div className={fieldCls}>
+            <label className={labelCls}>Box position</label>
+            <select value={p.align ?? 'left'} onChange={(e) => update({ align: e.target.value as 'left'|'centre'|'right' })} className={selectCls}>
+              <option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option>
+            </select>
           </div>
         </div>
       )
@@ -452,6 +502,12 @@ export function BlockInspector({ block, tokens, submissions, media, onUpdate, on
           <div className={fieldCls}>
             <label className={labelCls}>Date</label>
             <input type="date" value={p.date} onChange={(e) => update({ date: e.target.value })} className={inputCls} />
+          </div>
+          <div className={fieldCls}>
+            <label className={labelCls}>Align</label>
+            <select value={p.align ?? 'left'} onChange={(e) => update({ align: e.target.value as 'left'|'centre'|'right' })} className={selectCls}>
+              <option value="left">Left</option><option value="centre">Centre</option><option value="right">Right</option>
+            </select>
           </div>
         </div>
       )

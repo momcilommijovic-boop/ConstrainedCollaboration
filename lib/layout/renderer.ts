@@ -82,7 +82,12 @@ body {
 
 .pub-page {
   padding: var(--margin-v) var(--margin-h);
-  max-width: calc(var(--col-max) + 2 * var(--margin-h));
+  /*
+   * Extra margin-h on each side beyond col-max gives "wide" articles
+   * meaningful breathing room. Standard articles (max-width: col-max)
+   * are centred within this wider container; wide articles fill it.
+   */
+  max-width: calc(var(--col-max) + 4 * var(--margin-h));
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -104,6 +109,11 @@ h4 { font-size: var(--scale-h4); font-family: var(--font-subheading); }
 
 p { margin-bottom: var(--gap-para); }
 p:last-child { margin-bottom: 0; }
+
+/* Article paragraphs need at least one line-height of space so the break
+   reads as a paragraph gap, not just a large line-spacing. */
+.article-body p { margin-bottom: max(var(--gap-para), 1.8em); }
+.article-body p:last-child { margin-bottom: 0; }
 
 figure { margin: 0; }
 figcaption {
@@ -145,10 +155,9 @@ figcaption {
 }
 .article-byline-inline {
   font-family: var(--font-ui);
-  font-size: var(--scale-ui);
-  color: var(--color-muted);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
   margin-bottom: 1.25rem;
 }
 
@@ -235,9 +244,8 @@ ${pullQuoteStyle}
 /* Byline */
 .pub-byline {
   font-family: var(--font-ui);
-  font-size: var(--scale-ui);
-  color: var(--color-muted);
-  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -245,6 +253,10 @@ ${pullQuoteStyle}
   border-top: var(--rule-weight) var(--rule-style) var(--color-border);
   border-bottom: var(--rule-weight) var(--rule-style) var(--color-border);
 }
+.pub-byline--centre { justify-content: center; }
+.pub-byline--right  { justify-content: flex-end; }
+.pub-byline__name { color: var(--color-text-secondary); }
+.pub-byline__date { color: var(--color-muted); font-size: 0.75rem; }
 .pub-byline a { color: inherit; text-decoration: none; }
 .pub-byline a:hover { color: var(--color-accent); }
 
@@ -360,13 +372,52 @@ ${pullQuoteStyle}
 /* Spacer */
 .pub-spacer { display: block; }
 
+/* Screen-only page separator — makes it obvious where one pub-page ends and the next begins */
+@media screen {
+  .pub-page + .pub-page {
+    margin-top: var(--gap-section);
+    border-top: 2px solid var(--color-border);
+    padding-top: var(--margin-v);
+  }
+}
+
 /* ── Print / PDF ── */
 @media print {
-  @page { margin: 0; size: A4; }
+  /*
+   * @page margin: 0 suppresses the browser's built-in running headers/footers
+   * (URL, date, page number). Gutters come from .pub-page padding instead.
+   * box-decoration-break: clone re-applies that padding at the top of every
+   * continuation physical page produced by paragraph break rules.
+   */
+  @page { margin: 0; size: A4 portrait; }
+  @page landscape { size: A4 landscape; margin: 0; }
+  @page portrait  { size: A4 portrait;  margin: 0; }
+  html { font-size: 12px; }
   body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pub-page { page-break-after: always; break-after: page; padding: 1.5cm 2cm; }
+  .pub-page {
+    page-break-after: always;
+    break-after: page;
+    padding: 1.5cm 2cm;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    max-width: 100%;
+    margin: 0;
+  }
   .pub-page:last-child { page-break-after: avoid; break-after: avoid; }
   .pub-no-print { display: none !important; }
+  /* Break at paragraph boundaries, never mid-paragraph */
+  p { break-inside: avoid; orphans: 3; widows: 3; margin-bottom: var(--gap-para); }
+  p:last-child { margin-bottom: 0; }
+  .article-body p { margin-bottom: max(var(--gap-para), 1.8em); }
+  .article-body p:last-child { margin-bottom: 0; }
+  /* Keep headings attached to the content that follows them */
+  h1, h2, h3, h4 { break-after: avoid; }
+  .pub-byline { break-inside: avoid; break-after: avoid; }
+  .pub-standfirst { break-inside: avoid; break-after: avoid; }
+  .article-title { break-after: avoid; }
+  /* Let article body and blocks flow freely across print pages */
+  .article-body { break-inside: auto; }
+  .pub-block { break-inside: auto; }
 }
 `
 }
@@ -423,7 +474,9 @@ function escHtml(str: string): string {
 }
 
 function bodyToHtml(text: string): string {
-  return text
+  // Normalize CRLF/CR to LF — browser textareas submit \r\n which breaks \n\n splitting
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  return normalized
     .split(/\n\n+/)
     .filter(Boolean)
     .map((p) => `<p>${escHtml(p.trim()).replace(/\n/g, ' ')}</p>`)
@@ -468,12 +521,12 @@ ${p.subtitle ? `<p class="pub-cover__subtitle">${escHtml(p.subtitle)}</p>` : ''}
     case 'article_body': {
       const p = block.props
       const sub = subMap.get(p.submission_id)
-      const widthClass =
-        p.column_width === 'narrow'
-          ? 'article-body--narrow'
-          : p.column_width === 'wide'
-          ? 'article-body--wide'
-          : ''
+      // Width is always rendered as inline style so % values and presets work uniformly
+      const widthCss =
+        p.column_width === 'narrow'   ? 'max-width:var(--col-narrow);margin-left:auto;margin-right:auto;'
+        : p.column_width === 'wide'   ? 'max-width:100%;'
+        : p.column_width === 'standard' ? 'max-width:var(--col-max);margin-left:auto;margin-right:auto;'
+        : `max-width:${escHtml(p.column_width)};margin-left:auto;margin-right:auto;`
       const dropCapClass = p.show_drop_cap && tokens.typography_details.drop_cap ? 'drop-cap' : ''
       const html = sub?.body ? bodyToHtml(sub.body) : '<p><em>Submission body not available.</em></p>'
 
@@ -499,7 +552,7 @@ ${p.subtitle ? `<p class="pub-cover__subtitle">${escHtml(p.subtitle)}</p>` : ''}
 
       const clearfix = inlineImageId ? `<div class="article-body-clear"></div>` : ''
 
-      return `<article class="article-body ${widthClass} ${dropCapClass}">${titleHtml}${bylineHtml}${inlineImageHtml}${html}${clearfix}</article>`
+      return `<article class="article-body ${dropCapClass}" style="${widthCss}">${titleHtml}${bylineHtml}${inlineImageHtml}${html}${clearfix}</article>`
     }
 
     case 'heading': {
@@ -514,7 +567,15 @@ ${p.subtitle ? `<p class="pub-cover__subtitle">${escHtml(p.subtitle)}</p>` : ''}
 
     case 'pull_quote': {
       const p = block.props
-      return `<blockquote class="pub-pullquote">
+      // align positions the box; width constrains it
+      const boxMargin =
+        p.align === 'centre' ? 'margin-left:auto;margin-right:auto;'
+        : p.align === 'right' ? 'margin-left:auto;margin-right:0;'
+        : p.align === 'left'  ? 'margin-left:0;margin-right:auto;'
+        : ''
+      const widthCss = p.width ? `max-width:${escHtml(p.width)};` : ''
+      const inlineStyle = widthCss || boxMargin ? ` style="${widthCss}${boxMargin}"` : ''
+      return `<blockquote class="pub-pullquote"${inlineStyle}>
 <p class="pub-pullquote__text">${escHtml(p.text ?? '')}</p>
 ${p.attribution ? `<cite class="pub-pullquote__attribution">— ${escHtml(p.attribution)}</cite>` : ''}
 </blockquote>`
@@ -572,7 +633,10 @@ ${p.caption ? `<figcaption>${escHtml(p.caption)}</figcaption>` : ''}
 
     case 'byline': {
       const p = block.props
-      const fmt = tokens.typography_details.byline_format.replace('{name}', escHtml(p.author_name ?? ''))
+      // Fall back to the linked submission's author name if the prop is empty
+      const sub = p.submission_id ? subMap.get(p.submission_id) : undefined
+      const resolvedName = p.author_name || sub?.author_name || ''
+      const fmt = tokens.typography_details.byline_format.replace('{name}', escHtml(resolvedName))
       const name = p.author_profile_url
         ? `<a href="${escHtml(p.author_profile_url)}">${fmt}</a>`
         : fmt
@@ -580,9 +644,10 @@ ${p.caption ? `<figcaption>${escHtml(p.caption)}</figcaption>` : ''}
       if (p.date) {
         try { dateStr = new Date(p.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) } catch { /* skip */ }
       }
-      return `<div class="pub-byline">
-<span>${name}</span>
-${dateStr ? `<span>${escHtml(dateStr)}</span>` : ''}
+      const alignClass = p.align === 'centre' ? ' pub-byline--centre' : p.align === 'right' ? ' pub-byline--right' : ''
+      return `<div class="pub-byline${alignClass}">
+<span class="pub-byline__name">${name}</span>
+${dateStr ? `<span class="pub-byline__date">${escHtml(dateStr)}</span>` : ''}
 </div>`
     }
 
@@ -625,16 +690,26 @@ export function renderPublication(
   const cssVars = buildCssVars(tokens)
   const baseStyles = buildBaseStyles(tokens)
 
+  const firstPage = pages[0]
+  const globalFontPx = firstPage?.font_size_px ?? 16
+
   const pagesHtml = pages
     .map((page) => {
       const blocksHtml = page.blocks
         .map((block) => `<div class="pub-block">${renderBlock(block, tokens, media, submissions)}</div>`)
         .join('\n')
-      return `<section class="pub-page" data-page="${escHtml(page.id)}" data-label="${escHtml(page.label)}">${blocksHtml}</section>`
+      const orientation = page.orientation ?? 'portrait'
+      const padParts = (page.padding_l || page.padding_r || page.padding_v)
+        ? `padding: ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_r ?? 'var(--margin-h)'} ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_l ?? 'var(--margin-h)'}; max-width: none; margin-left: 0; margin-right: 0;`
+        : ''
+      const pageNameCss = `page: ${orientation};`
+      const inlineStyle = ` style="${padParts}${pageNameCss}"`
+      return `<section class="pub-page" data-page="${escHtml(page.id)}" data-label="${escHtml(page.label)}"${inlineStyle}>${blocksHtml}</section>`
     })
     .join('\n')
 
-  const styles = `<style>${fontImports}\n${cssVars}\n${baseStyles}</style>`
+  const fontSizeOverride = globalFontPx !== 16 ? `html { font-size: ${globalFontPx}px; }` : ''
+  const styles = `<style>${fontImports}\n${cssVars}\n${baseStyles}\n${fontSizeOverride}</style>`
 
   if (!options.shell) {
     // Fragment for iframe embedding — no <html> wrapper
@@ -666,20 +741,35 @@ export function renderPage(
   const cssVars = buildCssVars(tokens)
   const baseStyles = buildBaseStyles(tokens)
 
+  const orientation = page.orientation ?? 'portrait'
+  const fontSizePx = page.font_size_px ?? 16
+  // A4 at 96 DPI: portrait = 1122px tall, landscape = 794px tall
+  const a4Height = orientation === 'landscape' ? 794 : 1122
+
+  const overrideStyles = [
+    fontSizePx !== 16 ? `html { font-size: ${fontSizePx}px; }` : '',
+    `@media print { @page { size: A4 ${orientation}; } }`,
+  ].filter(Boolean).join('\n')
+
   const blocksHtml = page.blocks
     .map((block) => `<div class="pub-block">${renderBlock(block, tokens, media, submissions)}</div>`)
     .join('\n')
+
+  const padStyle = (page.padding_l || page.padding_r || page.padding_v)
+    ? ` style="padding: ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_r ?? 'var(--margin-h)'} ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_l ?? 'var(--margin-h)'}; max-width: none; margin-left: 0; margin-right: 0;"`
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>${fontImports}\n${cssVars}\n${baseStyles}</style>
+<style>${fontImports}\n${cssVars}\n${baseStyles}\n${overrideStyles}</style>
 <script>document.fonts.ready.then(()=>document.documentElement.classList.add('fonts-loaded'))</script>
 </head>
-<body>
-<section class="pub-page">${blocksHtml}</section>
+<body style="position:relative">
+<div class="pub-no-print" aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:max(100%,8000px);pointer-events:none;z-index:999;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent ${a4Height - 1}px,rgba(192,57,43,0.35) ${a4Height - 1}px,rgba(192,57,43,0.35) ${a4Height}px);"></div>
+<section class="pub-page"${padStyle}>${blocksHtml}</section>
 </body>
 </html>`
 }

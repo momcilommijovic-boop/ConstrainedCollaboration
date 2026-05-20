@@ -25,8 +25,8 @@ values (
     "word_count_max": 1200,
     "penalty_rules": {
       "missed_brief": { "action": "warn", "merit_delta": -5 },
-      "missed_submission": { "action": "warn", "merit_delta": -10 },
-      "missed_promotion": { "action": "warn_then_kick", "merit_delta": -15 },
+      "missed_submission": { "action": "kick", "merit_delta": -10 },
+      "missed_promotion": { "action": "warn", "merit_delta": -15 },
       "second_offense": { "action": "kick", "merit_delta": -20 },
       "merit_kick_threshold": 60
     },

@@ -78,7 +78,7 @@ export const DEFAULT_TOKENS: DesignTokens = {
   spacing: {
     section_gap: '5rem',
     block_gap: '2.5rem',
-    paragraph_gap: '1.5rem',
+    paragraph_gap: '2rem',
     page_margin_horizontal: 'clamp(1.5rem, 6vw, 6rem)',
     page_margin_vertical: '4rem',
   },

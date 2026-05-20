@@ -328,6 +328,28 @@ async function applyCompletionMerit(
   cell: { id: string; current_cycle: number },
   _config: EzineConfig,
 ) {
+  const cycle = cell.current_cycle
+
+  async function creditMerit(userId: string, event: string, delta: number) {
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('merit_score, merit_history')
+      .eq('id', userId)
+      .single()
+
+    const current: number = profile?.merit_score ?? 100
+    const entry = { event, delta, ts: new Date().toISOString() }
+
+    await sb
+      .from('profiles')
+      .update({
+        merit_score: current + delta,
+        merit_history: [...(Array.isArray(profile?.merit_history) ? profile.merit_history : []), entry],
+      })
+      .eq('id', userId)
+  }
+
+  // Cycle completion gains (+15 editor, +3 all active members)
   const { data: members } = await sb
     .from('cell_members')
     .select('user_id, role')
@@ -335,34 +357,47 @@ async function applyCompletionMerit(
     .eq('status', 'ACTIVE')
 
   for (const m of members ?? []) {
-    const gain =
-      m.role === 'EDITOR'
-        ? MERIT_GAINS.cycle_completed_as_editor
-        : MERIT_GAINS.cycle_completed_as_member
-
-    const { data: profile } = await sb
-      .from('profiles')
-      .select('merit_score, merit_history')
-      .eq('id', m.user_id)
-      .single()
-
-    const current: number = profile?.merit_score ?? 100
-    const entry = {
-      event: m.role === 'EDITOR' ? 'cycle_completed_as_editor' : 'cycle_completed_as_member',
-      delta: gain,
-      ts: new Date().toISOString(),
-    }
-
-    await sb
-      .from('profiles')
-      .update({
-        merit_score: current + gain,
-        merit_history: [...(Array.isArray(profile?.merit_history) ? profile.merit_history : []), entry],
-      })
-      .eq('id', m.user_id)
+    const isEditor = m.role === 'EDITOR'
+    await creditMerit(
+      m.user_id,
+      isEditor ? 'cycle_completed_as_editor' : 'cycle_completed_as_member',
+      isEditor ? MERIT_GAINS.cycle_completed_as_editor : MERIT_GAINS.cycle_completed_as_member,
+    )
   }
 
-  await logSystem(sb, 'completion_merit_applied', { cell_id: cell.id, cycle: cell.current_cycle })
+  // Accepted submission gains (+10 per author with an accepted submission)
+  const { data: acceptedSubs } = await sb
+    .from('submissions')
+    .select('author_id')
+    .eq('cell_id', cell.id)
+    .eq('cycle', cycle)
+    .eq('status', 'ACCEPTED')
+
+  for (const sub of acceptedSubs ?? []) {
+    await creditMerit(sub.author_id, 'submission_accepted', MERIT_GAINS.submission_accepted)
+  }
+
+  // On-time promotion gains (+5 per member who submitted promotion evidence)
+  const { data: pub } = await sb
+    .from('publications')
+    .select('id')
+    .eq('cell_id', cell.id)
+    .eq('cycle', cycle)
+    .maybeSingle()
+
+  if (pub) {
+    const { data: promos } = await sb
+      .from('promotion_records')
+      .select('user_id')
+      .eq('publication_id', pub.id)
+      .neq('status', 'MISSED')
+
+    for (const promo of promos ?? []) {
+      await creditMerit(promo.user_id, 'promotion_on_time', MERIT_GAINS.promotion_on_time)
+    }
+  }
+
+  await logSystem(sb, 'completion_merit_applied', { cell_id: cell.id, cycle })
 }
 
 // ── New cycle ─────────────────────────────────────────────────────────────────

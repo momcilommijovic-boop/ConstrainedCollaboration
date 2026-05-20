@@ -48,7 +48,7 @@ function defaultProps(type: Block['type'], submissions: SubmissionForRender[]): 
   const firstSub = submissions[0]
   switch (type) {
     case 'cover': return { title: 'Issue Title', subtitle: '', issue_number: 'Issue 1', image_id: null, overlay_opacity: 40, title_position: 'bottom-left' }
-    case 'article_body': return { submission_id: firstSub?.id ?? '', show_drop_cap: true, column_width: 'standard', show_title: true, show_byline: true, inline_image_id: null, inline_image_position: 'left', inline_image_width: '40%' }
+    case 'article_body': return { submission_id: firstSub?.id ?? '', show_drop_cap: true, column_width: '80%', show_title: true, show_byline: true, inline_image_id: null, inline_image_position: 'left', inline_image_width: '40%' }
     case 'heading': return { text: 'Heading', level: 'h2', align: 'left' }
     case 'standfirst': return { text: 'An introductory paragraph that sets the scene.' }
     case 'pull_quote': return { text: 'A compelling sentence from the article.', attribution: null, style_override: null }
@@ -194,6 +194,25 @@ export function LayoutEditor({
     updatePages(next)
   }
 
+  function updatePagePadding(idx: number, field: 'padding_l' | 'padding_r' | 'padding_v', value: string) {
+    const next = pages.map((p, i) => (i === idx ? { ...p, [field]: value || undefined } : p))
+    updatePages(next)
+  }
+
+  function toggleOrientation() {
+    const current = currentPage?.orientation ?? 'portrait'
+    const next = pages.map((p) => ({ ...p, orientation: (current === 'portrait' ? 'landscape' : 'portrait') as 'portrait' | 'landscape' }))
+    updatePages(next)
+  }
+
+  function adjustFontSize(delta: number) {
+    const current = currentPage?.font_size_px ?? 16
+    const next = pages.map((p) => ({ ...p, font_size_px: Math.max(10, Math.min(28, current + delta)) }))
+    updatePages(next)
+  }
+
+
+
   function addBlock(type: Block['type']) {
     if (!currentPage) return
     const block = { type, id: nanoid(8), props: defaultProps(type, submissions) } as Block
@@ -331,6 +350,14 @@ export function LayoutEditor({
           <p className="font-mono text-xs text-olive/50 px-3 py-4 text-center">No pages yet</p>
         )}
         <div className="mt-auto px-3 py-3 border-t border-near-black/10 space-y-2">
+          <div className="flex items-center gap-1">
+            <span className="font-mono text-[10px] text-olive flex-1">Font size</span>
+            <button type="button" onClick={() => adjustFontSize(-1)}
+              className="font-mono text-xs border border-near-black/20 w-6 h-6 flex items-center justify-center hover:bg-near-black hover:text-off-white transition-colors">−</button>
+            <span className="font-mono text-xs w-8 text-center">{currentPage?.font_size_px ?? 16}px</span>
+            <button type="button" onClick={() => adjustFontSize(+1)}
+              className="font-mono text-xs border border-near-black/20 w-6 h-6 flex items-center justify-center hover:bg-near-black hover:text-off-white transition-colors">+</button>
+          </div>
           <button
             type="button"
             onClick={handleAutoLayout}
@@ -367,16 +394,56 @@ export function LayoutEditor({
           </div>
         )}
 
-        {/* Page label editor */}
+        {/* Page label + margin editor */}
         {currentPage && (
-          <div className="bg-off-white border-b border-near-black/20 px-4 py-2 flex items-center gap-3 shrink-0">
-            <span className="font-mono text-xs text-olive">Page label:</span>
+          <div className="bg-off-white border-b border-near-black/20 px-4 py-2 flex items-center gap-3 shrink-0 flex-wrap">
+            <span className="font-mono text-xs text-olive">Label:</span>
             <input
               type="text"
               value={currentPage.label}
               onChange={(e) => renamePage(currentPageIdx, e.target.value)}
-              className="font-mono text-xs border border-near-black/20 bg-transparent px-2 py-1 focus:outline-none focus:border-near-black"
+              className="font-mono text-xs border border-near-black/20 bg-transparent px-2 py-1 focus:outline-none focus:border-near-black w-32"
             />
+            <button
+              type="button"
+              onClick={toggleOrientation}
+              className="font-mono text-xs border border-near-black/20 px-2 py-1 hover:bg-near-black hover:text-off-white transition-colors"
+              title="Toggle all pages between portrait and landscape"
+            >
+              {(currentPage.orientation ?? 'portrait') === 'portrait' ? 'Portrait' : 'Landscape'}
+            </button>
+            <span className="font-mono text-xs text-olive/50">|</span>
+            <span className="font-mono text-xs text-olive">Margins:</span>
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-[10px] text-olive">L</span>
+              <input
+                type="text"
+                value={currentPage.padding_l ?? ''}
+                onChange={(e) => updatePagePadding(currentPageIdx, 'padding_l', e.target.value)}
+                placeholder="e.g. 3rem"
+                className="font-mono text-xs border border-near-black/20 bg-transparent px-2 py-1 focus:outline-none focus:border-near-black w-20"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-[10px] text-olive">R</span>
+              <input
+                type="text"
+                value={currentPage.padding_r ?? ''}
+                onChange={(e) => updatePagePadding(currentPageIdx, 'padding_r', e.target.value)}
+                placeholder="e.g. 3rem"
+                className="font-mono text-xs border border-near-black/20 bg-transparent px-2 py-1 focus:outline-none focus:border-near-black w-20"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-mono text-[10px] text-olive">V</span>
+              <input
+                type="text"
+                value={currentPage.padding_v ?? ''}
+                onChange={(e) => updatePagePadding(currentPageIdx, 'padding_v', e.target.value)}
+                placeholder="e.g. 4rem"
+                className="font-mono text-xs border border-near-black/20 bg-transparent px-2 py-1 focus:outline-none focus:border-near-black w-20"
+              />
+            </div>
             <button
               type="button"
               onClick={previewCurrentPage}

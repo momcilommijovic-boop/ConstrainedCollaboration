@@ -83,7 +83,7 @@ export type CoverProps = {
 export type ArticleBodyProps = {
   submission_id: string
   show_drop_cap: boolean
-  column_width: 'narrow' | 'standard' | 'wide'
+  column_width: 'narrow' | 'standard' | 'wide' | string  // string allows custom % e.g. '65%'
   show_title?: boolean
   show_byline?: boolean
   inline_image_id?: string | null
@@ -105,6 +105,8 @@ export type PullQuoteProps = {
   text: string
   attribution: string | null
   style_override: string | null
+  align?: 'left' | 'centre' | 'right'
+  width?: string
 }
 
 export type ImageFullProps = {
@@ -138,6 +140,7 @@ export type BylineProps = {
   author_name: string
   author_profile_url: string | null
   date: string
+  align?: 'left' | 'centre' | 'right'
 }
 
 export type ContentsProps = {
@@ -176,6 +179,11 @@ export type Page = {
   id: string
   label: string
   blocks: Block[]
+  padding_l?: string
+  padding_r?: string
+  padding_v?: string
+  orientation?: 'portrait' | 'landscape'
+  font_size_px?: number
 }
 
 // ── Media ─────────────────────────────────────────────────────────────────────
