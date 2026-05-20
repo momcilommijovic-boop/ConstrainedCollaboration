@@ -351,23 +351,30 @@ export default async function CellPage({ params }: { params: { slug: string } })
                   Editorial Workspace →
                 </Link>
               )}
+              {cell.current_stage === 'EDITING' && (isEditor || isOwner || isAdmin) && (
+                <Link href={`/cells/${cell.slug}/layout/${cell.current_cycle}`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
+                  Layout Editor →
+                </Link>
+              )}
               {cell.current_stage === 'PROMOTION' && isMember && (
                 <Link href={`/cells/${cell.slug}/promote`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
                   Submit Promotion Evidence →
                 </Link>
               )}
-              {cell.current_stage === 'PROMOTION' && (
-                <Link href={`/cells/${cell.slug}/publication/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black transition-colors">
-                  View Publication →
-                </Link>
+              {(cell.current_stage === 'PROMOTION' || cell.current_stage === 'COMPLETE') && (
+                <>
+                  <Link href={`/cells/${cell.slug}/publication/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black transition-colors">
+                    View Publication →
+                  </Link>
+                  {(isEditor || isOwner || isAdmin) && (
+                    <Link href={`/cells/${cell.slug}/layout/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black text-olive hover:text-near-black transition-colors">
+                      Layout Editor
+                    </Link>
+                  )}
+                </>
               )}
               {cell.current_stage === 'PROMOTION' && isOwner && (
                 <AdvanceToCompleteForm cellId={cell.id} />
-              )}
-              {cell.current_stage === 'COMPLETE' && (
-                <Link href={`/cells/${cell.slug}/publication/${cell.current_cycle}`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
-                  View Publication →
-                </Link>
               )}
               {cell.current_stage === 'COMPLETE' && (isOwner || isAdmin) && (
                 <GenerateRetrospectiveButton
@@ -376,6 +383,11 @@ export default async function CellPage({ params }: { params: { slug: string } })
                   cycle={cell.current_cycle}
                   existingStatus={retroStatus}
                 />
+              )}
+              {(isEditor || isOwner || isAdmin) && (
+                <Link href={`/cells/${cell.slug}/settings/design`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black text-olive hover:text-near-black transition-colors">
+                  House Style
+                </Link>
               )}
             </div>
           </div>
