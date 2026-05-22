@@ -509,6 +509,26 @@ export interface Database {
         }
         Relationships: []
       }
+      demo_content: {
+        Row: {
+          id: string
+          author_email: string
+          article_title: string
+          article_body: string
+        }
+        Insert: {
+          id?: string
+          author_email: string
+          article_title: string
+          article_body: string
+        }
+        Update: {
+          author_email?: string
+          article_title?: string
+          article_body?: string
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Enums: Record<string, never>

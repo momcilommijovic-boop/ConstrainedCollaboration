@@ -145,7 +145,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
       <main className="flex-1 px-8 py-10 max-w-4xl">
 
         {/* Stage timeline */}
-        <div className="mb-10">
+        <div className="mb-10" data-demo-highlight="stage-timeline">
           <StageTimeline currentStage={cell.current_stage} />
         </div>
 
@@ -333,7 +333,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
               {cell.stage_deadline && <DeadlineCounter deadline={cell.stage_deadline} />}
             </div>
             <div className="flex gap-3 flex-wrap">
-              {cell.current_stage === 'SUBMISSION' && isMember && (
+              {cell.current_stage === 'SUBMISSION' && isMember && !isEditor && (
                 <Link href={`/cells/${cell.slug}/submit`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
                   Submit Article →
                 </Link>
@@ -384,7 +384,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
                   existingStatus={retroStatus}
                 />
               )}
-              {(isEditor || isOwner || isAdmin) && (
+              {(isEditor || isOwner || isAdmin) && ['EDITING', 'PROMOTION', 'COMPLETE'].includes(cell.current_stage) && (
                 <Link href={`/cells/${cell.slug}/settings/design`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black text-olive hover:text-near-black transition-colors">
                   House Style
                 </Link>
@@ -408,7 +408,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
         </div>
 
         {/* ── Member table ──────────────────────────────────── */}
-        <div className="border border-near-black/20">
+        <div className="border border-near-black/20" data-demo-highlight="member-list">
           <div className="px-5 py-3 border-b border-near-black/20 flex items-center justify-between">
             <p className="font-mono text-xs uppercase tracking-widest text-olive">Members</p>
             <span className="font-mono text-xs text-olive">{memberCount}/{cell.member_cap}</span>

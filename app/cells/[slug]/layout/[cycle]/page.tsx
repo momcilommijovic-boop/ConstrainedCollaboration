@@ -151,7 +151,7 @@ export default async function LayoutEditorPage({
       </header>
 
       {/* Three-panel layout */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden" data-demo-highlight="layout-canvas">
         <LayoutEditor
           publicationId={publication.id}
           cellId={cell.id}

@@ -121,7 +121,7 @@ export default function LandingPage() {
           <h2 className="font-serif-display text-4xl mb-8">
             Start a Cell or join one.
           </h2>
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-4 flex-wrap" data-demo-highlight="hero-cta">
             <Link
               href="/signup"
               className="font-mono text-sm bg-near-black text-off-white border border-near-black px-6 py-3 hover:bg-accent-red hover:border-accent-red transition-colors"

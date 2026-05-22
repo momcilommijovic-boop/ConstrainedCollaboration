@@ -2,23 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design token CSS custom properties ──────────────────────────────────────
+ * All colours stored as space-separated RGB triplets so Tailwind's
+ * opacity modifier syntax (bg-off-white/10) continues to work after
+ * a runtime theme swap.
+ *
+ * Fonts are indirected through --font-heading / --font-body / --font-ui
+ * so the theme panel can override them without touching Next.js font vars.
+ * ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  --background: #F5F2EC;
-  --foreground: #1A1A18;
+  /* ── colour RGB triplets ── */
+  --color-bg-rgb:      245 242 236;   /* off-white   #F5F2EC */
+  --color-text-rgb:    26  26  24;    /* near-black  #1A1A18 */
+  --color-accent-rgb:  192 57  43;    /* accent-red  #C0392B */
+  --color-muted-rgb:   122 122 90;    /* olive       #7A7A5A */
+  --color-surface-rgb: 237 234 227;   /* surface     #EDEAE3 */
+  --color-border-rgb:  212 208 200;   /* border      #D4D0C8 */
+
+  /* ── colour convenience aliases (solid) ── */
+  --color-bg:      rgb(var(--color-bg-rgb));
+  --color-text:    rgb(var(--color-text-rgb));
+  --color-accent:  rgb(var(--color-accent-rgb));
+  --color-muted:   rgb(var(--color-muted-rgb));
+  --color-surface: rgb(var(--color-surface-rgb));
+  --color-border:  rgb(var(--color-border-rgb));
+
+  /* ── fonts ── */
+  /* Indirected through theme vars — Next.js font vars are the defaults */
+  --font-heading: var(--font-dm-serif),      Georgia, serif;
+  --font-body:    var(--font-source-serif),  Georgia, serif;
+  --font-ui:      var(--font-ibm-plex-mono), ui-monospace, monospace;
+
+  /* ── typographic scale ── */
+  --text-h1:    48px;
+  --text-h2:    32px;
+  --text-h3:    24px;
+  --text-h4:    20px;
+  --text-body:  17px;
+  --text-ui:    13px;
+  --leading-body:   1.75;
+  --tracking-heading: -0.01em;
+
+  /* Legacy aliases kept for code that still uses them */
+  --background: rgb(var(--color-bg-rgb));
+  --foreground: rgb(var(--color-text-rgb));
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
-/* Remove default outline, replace with accent border on focus */
+/* Focus ring uses accent colour */
 *:focus-visible {
-  outline: 2px solid #C0392B;
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 /* No rounded corners anywhere */
 * {
   border-radius: 0 !important;
+}
+
+/* ── Demo highlight system ───────────────────────────────────────────────── */
+body[data-demo-highlight] [data-demo-highlight] {
+  animation: demo-pulse 1.5s ease-in-out infinite;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
+@keyframes demo-pulse {
+  0%, 100% {
+    outline-color: var(--color-accent);
+    outline-offset: 4px;
+  }
+  50% {
+    outline-color: rgb(var(--color-accent-rgb) / 0.4);
+    outline-offset: 8px;
+  }
 }

@@ -458,8 +458,8 @@ export function LayoutEditor({
           <iframe
             ref={iframeRef}
             title="Page canvas"
-            className="flex-1 w-full border-none"
-            style={{ minHeight: '600px' }}
+            className="block w-full border-none shrink-0"
+            style={{ minHeight: '1300px' }}
             sandbox="allow-same-origin"
           />
         ) : (

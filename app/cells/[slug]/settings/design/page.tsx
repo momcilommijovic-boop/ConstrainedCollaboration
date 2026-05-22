@@ -82,7 +82,7 @@ export default async function CellDesignPage({ params }: { params: { slug: strin
           </div>
 
           {/* Right: preview (if tokens exist) */}
-          <div className="space-y-6">
+          <div className="space-y-6" data-demo-highlight="design-preview">
             {tokenRow?.tokens ? (
               <DesignPreview tokens={tokenRow.tokens} />
             ) : (

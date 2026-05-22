@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import { DM_Serif_Display, IBM_Plex_Mono, Source_Serif_4 } from 'next/font/google'
 import { DevToolbar } from '@/components/dev/DevToolbar'
+import { DemoToolbar } from '@/components/demo/DemoToolbar'
+import { DemoBadge } from '@/components/demo/DemoBadge'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { ThemePanel } from '@/components/theme/ThemePanel'
 import './globals.css'
 
 const dmSerifDisplay = DM_Serif_Display({
@@ -33,7 +37,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${dmSerifDisplay.variable} ${ibmPlexMono.variable} ${sourceSerif4.variable}`}
     >
       <body className="bg-off-white text-near-black font-body antialiased min-h-screen flex flex-col">
+        <ThemeProvider />
         <DevToolbar />
+        <DemoBadge />
+        <DemoToolbar />
+        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && <ThemePanel />}
         {children}
       </body>
     </html>

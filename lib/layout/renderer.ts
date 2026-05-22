@@ -82,13 +82,7 @@ body {
 
 .pub-page {
   padding: var(--margin-v) var(--margin-h);
-  /*
-   * Extra margin-h on each side beyond col-max gives "wide" articles
-   * meaningful breathing room. Standard articles (max-width: col-max)
-   * are centred within this wider container; wide articles fill it.
-   */
-  max-width: calc(var(--col-max) + 4 * var(--margin-h));
-  margin: 0 auto;
+  /* Width/height set inline per page — content blocks own their max-width */
   display: flex;
   flex-direction: column;
   gap: var(--gap-section);
@@ -372,12 +366,31 @@ ${pullQuoteStyle}
 /* Spacer */
 .pub-spacer { display: block; }
 
-/* Screen-only page separator — makes it obvious where one pub-page ends and the next begins */
+/* Screen: pages appear as A4 paper sheets on a warm-grey desk */
 @media screen {
+  body {
+    background: #d4d0c8;
+    margin: 0;
+  }
+  /* pub-root wraps all pages in the publication view */
+  .pub-root {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    padding: 3rem 1.5rem;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .pub-page {
+    background: var(--color-bg);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.14), 0 16px 48px rgba(0,0,0,0.08);
+  }
+  /* Pages are separate paper cards — no separator rule between them */
   .pub-page + .pub-page {
-    margin-top: var(--gap-section);
-    border-top: 2px solid var(--color-border);
-    padding-top: var(--margin-v);
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
   }
 }
 
@@ -400,8 +413,12 @@ ${pullQuoteStyle}
     padding: 1.5cm 2cm;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
-    max-width: 100%;
-    margin: 0;
+    /* Override screen inline dimensions — print paper size comes from @page */
+    width: 100% !important;
+    min-height: auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
   }
   .pub-page:last-child { page-break-after: avoid; break-after: avoid; }
   .pub-no-print { display: none !important; }
@@ -699,11 +716,13 @@ export function renderPublication(
         .map((block) => `<div class="pub-block">${renderBlock(block, tokens, media, submissions)}</div>`)
         .join('\n')
       const orientation = page.orientation ?? 'portrait'
-      const padParts = (page.padding_l || page.padding_r || page.padding_v)
-        ? `padding: ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_r ?? 'var(--margin-h)'} ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_l ?? 'var(--margin-h)'}; max-width: none; margin-left: 0; margin-right: 0;`
+      // A4 at 96 DPI — sets the physical paper size for screen and PDF
+      const a4W = orientation === 'landscape' ? 1123 : 794
+      const a4H = orientation === 'landscape' ? 794 : 1123
+      const customPadding = (page.padding_l || page.padding_r || page.padding_v)
+        ? `padding: ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_r ?? 'var(--margin-h)'} ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_l ?? 'var(--margin-h)'};`
         : ''
-      const pageNameCss = `page: ${orientation};`
-      const inlineStyle = ` style="${padParts}${pageNameCss}"`
+      const inlineStyle = ` style="width:${a4W}px;min-height:${a4H}px;max-width:none;margin:0;${customPadding}page:${orientation};"`
       return `<section class="pub-page" data-page="${escHtml(page.id)}" data-label="${escHtml(page.label)}"${inlineStyle}>${blocksHtml}</section>`
     })
     .join('\n')
@@ -712,7 +731,7 @@ export function renderPublication(
   const styles = `<style>${fontImports}\n${cssVars}\n${baseStyles}\n${fontSizeOverride}</style>`
 
   if (!options.shell) {
-    // Fragment for iframe embedding — no <html> wrapper
+    // Fragment for Next.js page embedding — no <html> wrapper
     return `${styles}\n<div class="pub-root">${pagesHtml}</div>`
   }
 
@@ -724,7 +743,7 @@ export function renderPublication(
 ${styles}
 </head>
 <body>
-${pagesHtml}
+<div class="pub-root">${pagesHtml}</div>
 </body>
 </html>`
 }
@@ -743,8 +762,9 @@ export function renderPage(
 
   const orientation = page.orientation ?? 'portrait'
   const fontSizePx = page.font_size_px ?? 16
-  // A4 at 96 DPI: portrait = 1122px tall, landscape = 794px tall
-  const a4Height = orientation === 'landscape' ? 794 : 1122
+  // A4 at 96 DPI (1px = 1/96 in; 1mm = 3.7795px)
+  const a4W = orientation === 'landscape' ? 1123 : 794
+  const a4H = orientation === 'landscape' ? 794 : 1123
 
   const overrideStyles = [
     fontSizePx !== 16 ? `html { font-size: ${fontSizePx}px; }` : '',
@@ -755,9 +775,14 @@ export function renderPage(
     .map((block) => `<div class="pub-block">${renderBlock(block, tokens, media, submissions)}</div>`)
     .join('\n')
 
-  const padStyle = (page.padding_l || page.padding_r || page.padding_v)
-    ? ` style="padding: ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_r ?? 'var(--margin-h)'} ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_l ?? 'var(--margin-h)'}; max-width: none; margin-left: 0; margin-right: 0;"`
+  const customPadding = (page.padding_l || page.padding_r || page.padding_v)
+    ? `padding: ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_r ?? 'var(--margin-h)'} ${page.padding_v ?? 'var(--margin-v)'} ${page.padding_l ?? 'var(--margin-h)'};`
     : ''
+  const pageStyle = `${customPadding}max-width:none;margin:0;`
+
+  const orientationLabel = orientation === 'portrait'
+    ? 'A4 Portrait &nbsp;·&nbsp; 210 × 297 mm'
+    : 'A4 Landscape &nbsp;·&nbsp; 297 × 210 mm'
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -765,11 +790,13 @@ export function renderPage(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>${fontImports}\n${cssVars}\n${baseStyles}\n${overrideStyles}</style>
-<script>document.fonts.ready.then(()=>document.documentElement.classList.add('fonts-loaded'))</script>
 </head>
-<body style="position:relative">
-<div class="pub-no-print" aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:max(100%,8000px);pointer-events:none;z-index:999;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent ${a4Height - 1}px,rgba(192,57,43,0.35) ${a4Height - 1}px,rgba(192,57,43,0.35) ${a4Height}px);"></div>
-<section class="pub-page"${padStyle}>${blocksHtml}</section>
+<body style="background:#d4d0c8;margin:0;padding:2rem 1.5rem;box-sizing:border-box;min-height:100vh;">
+<p class="pub-no-print" aria-hidden="true" style="font-family:monospace;font-size:10px;color:rgba(0,0,0,0.4);text-align:center;margin:0 auto 0.75rem;letter-spacing:0.08em;text-transform:uppercase;">${orientationLabel}</p>
+<div style="width:${a4W}px;min-height:${a4H}px;background:var(--color-bg);margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,0.14),0 16px 48px rgba(0,0,0,0.08);position:relative;">
+<div class="pub-no-print" aria-hidden="true" style="position:absolute;top:0;left:0;right:0;height:max(100%,8000px);pointer-events:none;z-index:999;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent ${a4H - 1}px,rgba(192,57,43,0.35) ${a4H - 1}px,rgba(192,57,43,0.35) ${a4H}px);"></div>
+<section class="pub-page" style="${pageStyle}">${blocksHtml}</section>
+</div>
 </body>
 </html>`
 }

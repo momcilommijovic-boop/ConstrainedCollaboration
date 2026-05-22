@@ -109,6 +109,7 @@ export default async function DashboardPage() {
             <p className="font-mono text-xs uppercase tracking-widest text-olive">Your Cells</p>
             <Link
               href="/cells/new"
+              data-demo-highlight="create-cell-cta"
               className="font-mono text-xs bg-near-black text-off-white border border-near-black px-3 py-1 hover:bg-accent-red hover:border-accent-red transition-colors"
             >
               + New Cell

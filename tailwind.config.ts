@@ -10,15 +10,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'off-white': '#F5F2EC',
-        'near-black': '#1A1A18',
-        'accent-red': '#C0392B',
-        olive: '#7A7A5A',
+        // RGB triplet CSS vars enable opacity modifiers: bg-off-white/10, text-near-black/60, etc.
+        'off-white':   'rgb(var(--color-bg-rgb)   / <alpha-value>)',
+        'near-black':  'rgb(var(--color-text-rgb)  / <alpha-value>)',
+        'accent-red':  'rgb(var(--color-accent-rgb)/ <alpha-value>)',
+        'olive':       'rgb(var(--color-muted-rgb) / <alpha-value>)',
+        'surface':     'rgb(var(--color-surface-rgb)/ <alpha-value>)',
+        'border-col':  'rgb(var(--color-border-rgb)/ <alpha-value>)',
       },
       fontFamily: {
-        'serif-display': ['var(--font-dm-serif)', 'Georgia', 'serif'],
-        mono: ['var(--font-ibm-plex-mono)', 'ui-monospace', 'monospace'],
-        body: ['var(--font-source-serif)', 'Georgia', 'serif'],
+        'serif-display': ['var(--font-heading)', 'Georgia', 'serif'],
+        mono:            ['var(--font-ui)',      'ui-monospace', 'monospace'],
+        body:            ['var(--font-body)',    'Georgia', 'serif'],
       },
       borderRadius: {
         DEFAULT: '0',
