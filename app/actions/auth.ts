@@ -106,6 +106,24 @@ export async function signInWithMagicLink(
   return { error: null }
 }
 
+export async function signInWithGoogle(): Promise<never> {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/auth/callback`,
+      skipBrowserRedirect: true,
+    },
+  })
+
+  if (error || !data.url) {
+    throw new Error(error?.message ?? 'Failed to initialise Google sign-in')
+  }
+
+  redirect(data.url)
+}
+
 export async function signOut() {
   const supabase = createClient()
   await supabase.auth.signOut()
