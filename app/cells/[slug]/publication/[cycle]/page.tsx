@@ -1,8 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { renderPublication } from '@/lib/layout/renderer'
 import { DEFAULT_TOKENS } from '@/lib/layout/defaults'
 import { PrintButton } from '@/components/publication/PrintButton'
+import { SetYouTubeUrlForm } from '@/components/publication/SetYouTubeUrlForm'
 import type { DesignTokens, LayoutRow, MediaItem, SubmissionForRender } from '@/lib/layout/types'
 
 // Always render fresh — layout data changes whenever the editor saves
@@ -27,13 +29,27 @@ export default async function PublicationPage({
 
   if (!cell) notFound()
 
-  type PubRow = { id: string; cycle: number; status: string; selected_submission_ids: string[] | null; published_at: string | null }
+  type PubRow = { id: string; cycle: number; status: string; selected_submission_ids: string[] | null; published_at: string | null; youtube_url: string | null }
   const { data: publication } = await (admin
     .from('publications')
-    .select('id, cycle, status, selected_submission_ids, published_at')
+    .select('id, cycle, status, selected_submission_ids, published_at, youtube_url')
     .eq('cell_id', cell.id)
     .eq('cycle', cycle)
     .maybeSingle() as unknown as Promise<{ data: PubRow | null; error: unknown }>)
+
+  // Check if the current viewer is the editor (for YouTube URL management)
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  let isEditor = false
+  if (user) {
+    const { data: membership } = await supabase
+      .from('cell_members')
+      .select('role')
+      .eq('cell_id', cell.id)
+      .eq('user_id', user.id)
+      .maybeSingle() as { data: { role: string } | null; error: unknown }
+    isEditor = membership?.role === 'EDITOR'
+  }
 
   if (!publication) notFound()
 
@@ -102,11 +118,52 @@ export default async function PublicationPage({
       })
     : null
 
+  const youtubeEmbedId = publication.youtube_url
+    ? extractYouTubeId(publication.youtube_url)
+    : null
+
   return (
     <>
       {/* Inject the publication CSS + content directly into body */}
       {/* eslint-disable-next-line react/no-danger */}
       <div dangerouslySetInnerHTML={{ __html: publicationHtml }} />
+
+      {/* YouTube video — shown if a URL has been linked */}
+      {youtubeEmbedId && (
+        <div
+          className="pub-no-print px-8 py-8"
+          style={{ background: tokens.colours.background, borderTop: `1px solid ${tokens.colours.border}` }}
+        >
+          <p
+            style={{ fontFamily: `'${tokens.fonts.ui.family}', ${tokens.fonts.ui.fallback}`, color: tokens.colours.text_muted }}
+            className="text-xs uppercase tracking-widest mb-4"
+          >
+            Video
+          </p>
+          <div className="w-full max-w-2xl aspect-video">
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeEmbedId}`}
+              title="Publication video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Editor: set / update YouTube URL */}
+      {isEditor && publication && (
+        <div
+          className="pub-no-print px-8 py-6"
+          style={{ background: tokens.colours.background, borderTop: `1px solid ${tokens.colours.border}` }}
+        >
+          <SetYouTubeUrlForm
+            publicationId={publication.id}
+            currentUrl={publication.youtube_url}
+          />
+        </div>
+      )}
 
       {/* Quorum footer — hidden on print */}
       <footer
@@ -137,6 +194,16 @@ export default async function PublicationPage({
       </footer>
     </>
   )
+}
+
+function extractYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1)
+    return u.searchParams.get('v')
+  } catch {
+    return null
+  }
 }
 
 function NoLayoutFallback({

@@ -13,6 +13,8 @@ interface CellCardProps {
   stageDeadline: string | null
   strategyConfig: EzineStrategyConfig
   isMember: boolean
+  ownerName: string | null
+  thumbnailUrl?: string | null
 }
 
 function daysUntil(iso: string): number {
@@ -30,6 +32,8 @@ export function CellCard({
   stageDeadline,
   strategyConfig,
   isMember,
+  ownerName,
+  thumbnailUrl,
 }: CellCardProps) {
   const fillPct = Math.round((memberCount / memberCap) * 100)
   const daysLeft = stageDeadline ? daysUntil(stageDeadline) : null
@@ -37,15 +41,33 @@ export function CellCard({
 
   return (
     <article className="border border-near-black/20 hover:border-near-black transition-colors duration-100">
+      {/* Publication thumbnail — shown if this cell has a past issue */}
+      {thumbnailUrl && (
+        <Link href={`/cells/${slug}`} className="block overflow-hidden h-28 bg-near-black/5 border-b border-near-black/20">
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+          />
+        </Link>
+      )}
       <div className="px-5 py-5">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-3">
-          <Link
-            href={`/cells/${slug}`}
-            className="font-serif-display text-xl hover:text-accent-red transition-colors"
-          >
-            {title}
-          </Link>
+          <div>
+            <Link
+              href={`/cells/${slug}`}
+              className="font-serif-display text-xl hover:text-accent-red transition-colors"
+            >
+              {title}
+            </Link>
+            {ownerName && (
+              <p className="font-mono text-xs mt-0.5">
+                <span className="text-olive">owner —</span>{' '}
+                <span className="text-near-black">{ownerName}</span>
+              </p>
+            )}
+          </div>
           <span className="font-mono text-xs text-olive whitespace-nowrap shrink-0 mt-1">
             EZINE_V1
           </span>

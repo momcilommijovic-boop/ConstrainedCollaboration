@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { SubmissionForm } from '@/components/submission/SubmissionForm'
 import { ResubmitForm } from '@/components/submission/ResubmitForm'
 import { DeadlineCounter } from '@/components/cell/DeadlineCounter'
+import { VideoUploadForm } from '@/components/submission/VideoUploadForm'
 
 export default async function SubmitPage({ params }: { params: { slug: string } }) {
   const supabase = createClient()
@@ -66,6 +67,23 @@ export default async function SubmitPage({ params }: { params: { slug: string } 
     .eq('brief_id', brief?.id ?? '')
     .eq('invitee_id', user.id)
     .maybeSingle() as { data: { id: string; status: string } | null; error: unknown }
+
+  // Load existing video clip
+  type VideoClipRow = {
+    id: string
+    file_name: string | null
+    status: string
+    uploaded_at: string
+  }
+  const { data: videoClip } = brief
+    ? await (supabase
+        .from('video_clips' as never)
+        .select('id, file_name, status, uploaded_at')
+        .eq('cell_id' as never, cell.id)
+        .eq('user_id' as never, user.id)
+        .eq('cycle' as never, cell.current_cycle)
+        .maybeSingle() as unknown as Promise<{ data: VideoClipRow | null; error: unknown }>)
+    : { data: null }
 
   // Load existing submission
   type SubmissionRow = {
@@ -261,6 +279,34 @@ export default async function SubmitPage({ params }: { params: { slug: string } 
                   wordCountMax={brief.word_count_max}
                 />
               </>
+            )}
+
+            {/* Video clip upload — only for members who have accepted their invitation */}
+            {['SUBMISSION', 'EDITING'].includes(stage) && invitationAccepted && (
+              <div className="border-t border-near-black/20 pt-8 mt-8">
+                <div className="border border-near-black/20 px-6 py-6">
+                  <p className="font-mono text-xs uppercase tracking-widest text-olive mb-1">
+                    Video Clip — Optional
+                  </p>
+                  <p className="font-mono text-xs text-near-black/60 mb-5">
+                    Upload a short video clip (max 1 min). This is separate from your article submission.
+                    The Editor reviews and approves clips; approved clips are compiled into the publication video.
+                  </p>
+                  <VideoUploadForm
+                    cellId={cell.id}
+                    briefId={brief.id}
+                    existingClip={
+                      videoClip
+                        ? {
+                            fileName: videoClip.file_name,
+                            status: videoClip.status,
+                            uploadedAt: videoClip.uploaded_at,
+                          }
+                        : null
+                    }
+                  />
+                </div>
+              </div>
             )}
           </>
         )}

@@ -265,8 +265,18 @@ export async function triggerBriefing(
     .single()
 
   if (!cell) return { error: 'Cell not found.' }
-  if (cell.owner_id !== user.id) return { error: 'Only the Cell owner can start Briefing.' }
   if (cell.current_stage !== 'FORMING') return { error: 'Cell is not in the Forming stage.' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single() as { data: { is_admin: boolean } | null; error: unknown }
+
+  const isAdmin = profile?.is_admin ?? false
+  if (cell.owner_id !== user.id && !isAdmin) {
+    return { error: 'Only the Cell owner can start Briefing.' }
+  }
 
   // Verify quorum
   const { count } = await supabase

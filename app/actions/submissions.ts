@@ -315,9 +315,9 @@ export async function advanceToEditing(
 
   const { data: cell } = await supabase
     .from('cells')
-    .select('id, slug, title, current_stage, owner_id, strategy_config')
+    .select('id, slug, title, current_stage, current_cycle, owner_id, strategy_config')
     .eq('id', cellId)
-    .single() as { data: { id: string; slug: string; title: string; current_stage: string; owner_id: string; strategy_config: { editing_window_days: number } } | null; error: unknown }
+    .single() as { data: { id: string; slug: string; title: string; current_stage: string; current_cycle: number; owner_id: string; strategy_config: { editing_window_days: number } } | null; error: unknown }
 
   if (!cell) return { error: 'Cell not found.' }
   if (cell.current_stage !== 'SUBMISSION') return { error: 'Cell is not in the Submission stage.' }
@@ -331,6 +331,25 @@ export async function advanceToEditing(
 
   if (membership?.role !== 'EDITOR') {
     return { error: 'Unauthorised.' }
+  }
+
+  // Require at least one submission before allowing early close
+  const { data: currentBrief } = await supabase
+    .from('briefs')
+    .select('id')
+    .eq('cell_id', cellId)
+    .eq('cycle', cell.current_cycle)
+    .maybeSingle() as { data: { id: string } | null; error: unknown }
+
+  if (currentBrief) {
+    const { count: subCount } = await supabase
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('brief_id', currentBrief.id)
+      .in('status', ['SUBMITTED', 'ACCEPTED', 'REWORK_REQUESTED'])
+    if ((subCount ?? 0) === 0) {
+      return { error: 'No submissions received yet. Submissions will close automatically at the deadline.' }
+    }
   }
 
   const deadline = new Date(

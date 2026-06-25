@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { EditorReviewPanel } from '@/components/submission/EditorReviewPanel'
 import { PublicationAssembly } from '@/components/publication/PublicationAssembly'
 import { DeadlineCounter } from '@/components/cell/DeadlineCounter'
+import { VideoClipReviewForm } from '@/components/submission/VideoClipReviewForm'
 
 const STATUS_LABEL: Record<string, string> = {
   SUBMITTED: 'Pending',
@@ -128,6 +130,45 @@ export default async function EditPage({ params }: { params: { slug: string } })
     .eq('cycle', cell.current_cycle)
     .maybeSingle() as { data: { id: string; status: string } | null; error: unknown }
 
+  // Load video clips for this cycle with signed download URLs
+  type VideoClipRow = {
+    id: string
+    user_id: string
+    file_name: string | null
+    file_size_bytes: number | null
+    status: string
+    editor_note: string | null
+    uploaded_at: string
+    storage_path: string
+    profiles: { username: string; display_name: string | null } | null
+  }
+  const { data: rawClips } = await (supabase
+    .from('video_clips' as never)
+    .select('id, user_id, file_name, file_size_bytes, status, editor_note, uploaded_at, storage_path, profiles(username, display_name)')
+    .eq('cell_id' as never, cell.id)
+    .eq('cycle' as never, cell.current_cycle)
+    .order('uploaded_at' as never, { ascending: true }) as unknown as Promise<{
+    data: VideoClipRow[] | null; error: unknown
+  }>)
+
+  const admin = createAdminClient()
+  const videoClips = await Promise.all(
+    (rawClips ?? []).map(async (clip) => {
+      const { data: urlData } = await admin.storage
+        .from('video-clips')
+        .createSignedUrl(clip.storage_path, 3600)
+      return {
+        ...clip,
+        downloadUrl: urlData?.signedUrl ?? null,
+        authorName:
+          (clip.profiles as { username: string; display_name: string | null } | null)
+            ?.display_name ??
+          (clip.profiles as { username: string; display_name: string | null } | null)?.username ??
+          clip.user_id,
+      }
+    })
+  )
+
   const assemblySubmissions = accepted.map((s) => ({
     id: s.id,
     title: s.title,
@@ -211,6 +252,65 @@ export default async function EditPage({ params }: { params: { slug: string } })
               briefId={brief?.id ?? ''}
               acceptedSubmissions={assemblySubmissions}
             />
+          )}
+        </div>
+
+        {/* Video clips */}
+        <div className="border border-near-black/20 px-6 py-6 mb-8">
+          <p className="font-mono text-xs uppercase tracking-widest text-olive mb-4">
+            Video Clips ({videoClips.length})
+          </p>
+          {videoClips.length === 0 ? (
+            <p className="font-mono text-xs text-near-black/40">No clips uploaded yet.</p>
+          ) : (
+            <div className="flex flex-col gap-0">
+              {videoClips.map((clip, i) => (
+                <div
+                  key={clip.id}
+                  className={`py-4 flex items-start justify-between gap-4 ${
+                    i < videoClips.length - 1 ? 'border-b border-near-black/20' : ''
+                  }`}
+                >
+                  <div>
+                    <p className="font-mono text-xs text-near-black mb-0.5">
+                      {clip.authorName}
+                    </p>
+                    <p className="font-mono text-xs text-olive">
+                      {clip.file_name ?? 'clip'}
+                      {clip.file_size_bytes
+                        ? ` · ${(clip.file_size_bytes / (1024 * 1024)).toFixed(1)} MB`
+                        : ''}
+                      {' · '}
+                      {new Date(clip.uploaded_at).toLocaleDateString()}
+                    </p>
+                    {clip.editor_note && clip.status === 'REJECTED' && (
+                      <p className="font-mono text-xs text-accent-red mt-1">
+                        {clip.editor_note}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    {clip.downloadUrl && (
+                      <a
+                        href={clip.downloadUrl}
+                        download
+                        className="font-mono text-xs text-olive hover:text-near-black transition-colors"
+                      >
+                        Download ↓
+                      </a>
+                    )}
+                    <VideoClipReviewForm clipId={clip.id} currentStatus={clip.status} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {videoClips.filter((c) => c.status === 'APPROVED').length > 0 && (
+            <p className="font-mono text-xs text-olive border-t border-near-black/20 pt-4 mt-4">
+              {videoClips.filter((c) => c.status === 'APPROVED').length} clip
+              {videoClips.filter((c) => c.status === 'APPROVED').length !== 1 ? 's' : ''}{' '}
+              approved — download individually and stitch in your editor.
+            </p>
           )}
         </div>
 

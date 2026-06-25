@@ -29,10 +29,11 @@ export default async function BriefPage({ params }: { params: { slug: string } }
     stage_deadline: string | null
     strategy_config: EzineStrategyConfig
     current_cycle: number
+    min_members: number
   }
   const { data: cell } = await supabase
     .from('cells')
-    .select('id, slug, title, current_stage, stage_deadline, strategy_config, current_cycle')
+    .select('id, slug, title, current_stage, stage_deadline, strategy_config, current_cycle, min_members')
     .eq('slug', params.slug)
     .single() as { data: CellRow | null; error: unknown }
 
@@ -146,7 +147,7 @@ export default async function BriefPage({ params }: { params: { slug: string } }
                 <BriefForm
                   cellId={cell.id}
                   members={members.filter((m) => m.user_id !== user.id)}
-                  minInvites={config.min_submissions_required}
+                  minInvites={Math.max(1, cell.min_members - 1)}
                   wordCountMin={config.word_count_min}
                   wordCountMax={config.word_count_max}
                 />
@@ -170,9 +171,45 @@ export default async function BriefPage({ params }: { params: { slug: string } }
           <>
             <h1 className="font-serif-display text-4xl mb-1">{brief.title}</h1>
             {cell.stage_deadline && (
-              <p className="font-mono text-xs mb-8">
+              <p className="font-mono text-xs mb-6">
                 <DeadlineCounter deadline={cell.stage_deadline} prefix="Submissions close:" />
               </p>
+            )}
+
+            {/* Invitation status — shown first so it's visible on arrival */}
+            {!isEditor && myInvitation && myInvitation.status === 'PENDING' && (
+              <div className="border border-accent-red px-6 py-5 mb-6">
+                <p className="font-mono text-xs uppercase tracking-widest text-accent-red mb-3">
+                  Your Invitation — Action Required
+                </p>
+                <p className="font-mono text-sm mb-4">
+                  You have been invited to submit an article for this issue.
+                </p>
+                <InvitationResponse invitationId={myInvitation.id} />
+              </div>
+            )}
+            {!isEditor && myInvitation && myInvitation.status === 'ACCEPTED' && (
+              <div className="border border-near-black/20 px-6 py-4 mb-6 flex items-center justify-between">
+                <p className="font-mono text-sm">Invitation accepted — your submission is expected.</p>
+                <Link
+                  href={`/cells/${params.slug}/submit`}
+                  className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors shrink-0 ml-4"
+                >
+                  Submit Article →
+                </Link>
+              </div>
+            )}
+            {!isEditor && myInvitation && myInvitation.status === 'DECLINED' && (
+              <div className="border border-near-black/20 px-6 py-4 mb-6">
+                <p className="font-mono text-sm text-olive">You declined your invitation this cycle.</p>
+              </div>
+            )}
+            {!isEditor && !myInvitation && (
+              <div className="border border-near-black/20 px-6 py-4 mb-6">
+                <p className="font-mono text-xs text-olive">
+                  You have not been invited to submit this cycle.
+                </p>
+              </div>
             )}
 
             <div className="border-t border-near-black/20 pt-6 mb-8">
@@ -189,44 +226,6 @@ export default async function BriefPage({ params }: { params: { slug: string } }
                 {brief.slots} slot{brief.slots !== 1 ? 's' : ''}
               </p>
             </div>
-
-            {myInvitation && (
-              <div className="border border-near-black/20 px-6 py-5 mb-8">
-                <p className="font-mono text-xs uppercase tracking-widest text-olive mb-3">
-                  Your Invitation
-                </p>
-                {myInvitation.status === 'PENDING' && (
-                  <>
-                    <p className="font-mono text-sm mb-4">
-                      You have been invited to submit an article for this issue.
-                    </p>
-                    <InvitationResponse invitationId={myInvitation.id} />
-                  </>
-                )}
-                {myInvitation.status === 'ACCEPTED' && (
-                  <div className="flex items-center justify-between">
-                    <p className="font-mono text-sm">Accepted — your submission is expected.</p>
-                    <Link
-                      href={`/cells/${params.slug}/submit`}
-                      className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors"
-                    >
-                      Submit Article →
-                    </Link>
-                  </div>
-                )}
-                {myInvitation.status === 'DECLINED' && (
-                  <p className="font-mono text-sm text-olive">You declined this invitation.</p>
-                )}
-              </div>
-            )}
-
-            {!myInvitation && !isEditor && (
-              <div className="border border-near-black/20 px-6 py-5 mb-8">
-                <p className="font-mono text-xs text-olive">
-                  You have not been invited to submit this cycle.
-                </p>
-              </div>
-            )}
 
             {isEditor && (
               <div className="border border-near-black/20 px-6 py-6">

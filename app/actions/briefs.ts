@@ -49,10 +49,11 @@ export async function publishBrief(
     current_stage: string
     strategy_config: EzineStrategyConfig
     current_cycle: number
+    min_members: number
   }
   const { data: cell } = await supabase
     .from('cells')
-    .select('id, slug, title, current_stage, strategy_config, current_cycle')
+    .select('id, slug, title, current_stage, strategy_config, current_cycle, min_members')
     .eq('id', cell_id)
     .single() as { data: CellRow | null; error: unknown }
 
@@ -71,14 +72,13 @@ export async function publishBrief(
   }
 
   const config = cell.strategy_config
+  const minRequired = Math.max(1, cell.min_members - 1) // exclude the editor from the count
 
-  if (invitee_ids.length < config.min_submissions_required) {
-    return {
-      error: `Must invite at least ${config.min_submissions_required} members (minimum submissions required).`,
-    }
+  if (invitee_ids.length < minRequired) {
+    return { error: `Must invite at least ${minRequired} member${minRequired !== 1 ? 's' : ''}.` }
   }
-  if (slots < config.min_submissions_required) {
-    return { error: `Slots must be at least ${config.min_submissions_required}.` }
+  if (slots < minRequired) {
+    return { error: `Slots must be at least ${minRequired}.` }
   }
 
   const deadline = new Date(Date.now() + config.submission_window_days * 864e5).toISOString()

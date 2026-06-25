@@ -5,6 +5,11 @@ import type { EzineStrategyConfig } from '@/lib/strategies/ezine'
 
 export const metadata = { title: 'Browse Cells — Quorum' }
 
+function extractYouTubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  return m?.[1] ?? null
+}
+
 type RawCell = {
   id: string
   slug: string
@@ -16,6 +21,8 @@ type RawCell = {
   member_cap: number
   min_members: number
   stage_deadline: string | null
+  owner_id: string
+  profiles: { display_name: string | null; username: string } | null
 }
 
 export default async function BrowseCellsPage() {
@@ -24,10 +31,10 @@ export default async function BrowseCellsPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Fetch all FORMING cells
+  // Fetch all FORMING cells with owner profiles
   const { data: rawCells } = await supabase
     .from('cells')
-    .select('id, slug, title, description, strategy_id, strategy_config, status, member_cap, min_members, stage_deadline')
+    .select('id, slug, title, description, strategy_id, strategy_config, status, member_cap, min_members, stage_deadline, owner_id, profiles!owner_id(display_name, username)')
     .eq('status', 'FORMING')
     .order('created_at', { ascending: false }) as { data: RawCell[] | null; error: unknown }
 
@@ -45,6 +52,26 @@ export default async function BrowseCellsPage() {
 
     for (const row of memberRows ?? []) {
       memberCountMap[row.cell_id] = (memberCountMap[row.cell_id] ?? 0) + 1
+    }
+  }
+
+  // Fetch latest published publication per cell for thumbnails
+  const pubThumbMap: Record<string, string> = {}
+  if (cellIds.length > 0) {
+    const { data: pubs } = await supabase
+      .from('publications')
+      .select('cell_id, cover_image_url, youtube_url')
+      .in('cell_id', cellIds)
+      .in('status', ['PUBLISHED', 'PROMOTION_OPEN', 'ARCHIVED'])
+      .order('published_at', { ascending: false }) as {
+        data: { cell_id: string; cover_image_url: string | null; youtube_url: string | null }[] | null
+        error: unknown
+      }
+    for (const pub of pubs ?? []) {
+      if (pubThumbMap[pub.cell_id]) continue // keep only the latest
+      const thumb = pub.cover_image_url ??
+        (pub.youtube_url ? `https://img.youtube.com/vi/${extractYouTubeId(pub.youtube_url) ?? ''}/mqdefault.jpg` : null)
+      if (thumb) pubThumbMap[pub.cell_id] = thumb
     }
   }
 
@@ -152,6 +179,14 @@ export default async function BrowseCellsPage() {
                 stageDeadline={cell.stage_deadline}
                 strategyConfig={cell.strategy_config as EzineStrategyConfig}
                 isMember={memberCellIds.has(cell.id)}
+                ownerName={
+                  (cell.profiles as { display_name: string | null; username: string } | null)
+                    ?.display_name ??
+                  (cell.profiles as { display_name: string | null; username: string } | null)
+                    ?.username ??
+                  null
+                }
+                thumbnailUrl={pubThumbMap[cell.id] ?? null}
               />
             ))}
           </div>

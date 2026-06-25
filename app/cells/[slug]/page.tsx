@@ -9,6 +9,21 @@ import { JoinCellButton } from '@/components/cell/JoinCellButton'
 import { GenerateRetrospectiveButton } from '@/components/retrospective/GenerateRetrospectiveButton'
 import type { EzineStrategyConfig } from '@/lib/strategies/ezine'
 
+function extractYouTubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  return m?.[1] ?? null
+}
+
+function pubThumbnailUrl(pub: { cover_image_url: string | null; youtube_url: string | null } | null): string | null {
+  if (!pub) return null
+  if (pub.cover_image_url) return pub.cover_image_url
+  if (pub.youtube_url) {
+    const id = extractYouTubeId(pub.youtube_url)
+    if (id) return `https://img.youtube.com/vi/${id}/mqdefault.jpg`
+  }
+  return null
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const supabase = createClient()
   const { data } = await supabase
@@ -90,6 +105,14 @@ export default async function CellPage({ params }: { params: { slug: string } })
     isAdmin = p?.is_admin ?? false
   }
 
+  // Fetch owner profile directly — don't rely on them being a member
+  const { data: ownerProfile } = await supabase
+    .from('profiles')
+    .select('display_name, username')
+    .eq('id', cell.owner_id)
+    .single() as { data: { display_name: string | null; username: string } | null; error: unknown }
+  const ownerName = ownerProfile?.display_name ?? ownerProfile?.username ?? null
+
   const config = cell.strategy_config as EzineStrategyConfig
   const activeMembers = (members ?? []).filter((m) => m.status === 'ACTIVE')
   const memberCount = activeMembers.length
@@ -107,6 +130,50 @@ export default async function CellPage({ params }: { params: { slug: string } })
   const quorumMet = memberCount >= cell.min_members
   const capReached = memberCount >= cell.member_cap
   const quorumPct = Math.min(100, Math.round((memberCount / cell.min_members) * 100))
+
+  // During SUBMISSION: fetch current user's invitation status + submitted count for editor
+  let myInvitationStatus: string | null = null
+  let submittedCount = 0
+  if (cell.current_stage === 'SUBMISSION' && isMember && user) {
+    const { data: brief } = await supabase
+      .from('briefs')
+      .select('id')
+      .eq('cell_id', cell.id)
+      .eq('cycle', cell.current_cycle)
+      .maybeSingle() as { data: { id: string } | null; error: unknown }
+
+    if (brief) {
+      if (!isEditor) {
+        const { data: inv } = await supabase
+          .from('invitations')
+          .select('status')
+          .eq('brief_id', brief.id)
+          .eq('invitee_id', user.id)
+          .maybeSingle() as { data: { status: string } | null; error: unknown }
+        myInvitationStatus = inv?.status ?? null
+      } else {
+        const { count } = await supabase
+          .from('submissions')
+          .select('id', { count: 'exact', head: true })
+          .eq('brief_id', brief.id)
+          .in('status', ['SUBMITTED', 'ACCEPTED', 'REWORK_REQUESTED'])
+        submittedCount = count ?? 0
+      }
+    }
+  }
+
+  // Latest published publication — for thumbnail
+  type PubThumb = { id: string; cycle: number; cover_image_url: string | null; youtube_url: string | null; published_at: string | null }
+  const { data: latestPub } = await supabase
+    .from('publications')
+    .select('id, cycle, cover_image_url, youtube_url, published_at')
+    .eq('cell_id', cell.id)
+    .in('status', ['PUBLISHED', 'PROMOTION_OPEN', 'ARCHIVED'])
+    .order('published_at', { ascending: false })
+    .limit(1)
+    .maybeSingle() as { data: PubThumb | null; error: unknown }
+
+  const thumbUrl = pubThumbnailUrl(latestPub)
 
   // Retrospective availability (COMPLETE stage)
   let retroStatus: 'GENERATING' | 'READY' | 'FAILED' | null = null
@@ -126,7 +193,18 @@ export default async function CellPage({ params }: { params: { slug: string } })
         {/* Title */}
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 mb-1">
-            <h1 className="font-serif-display text-4xl">{cell.title}</h1>
+            <div>
+              <h1 className="font-serif-display text-4xl">{cell.title}</h1>
+              {ownerName && (
+                <p className="font-mono text-xs mt-1.5">
+                  <span className="text-olive">owner —</span>{' '}
+                  <span className="text-near-black font-medium">{ownerName}</span>
+                  {user?.id === cell.owner_id && (
+                    <span className="ml-2 text-accent-red">(you)</span>
+                  )}
+                </p>
+              )}
+            </div>
             <div className="flex items-center gap-3 mt-2 shrink-0">
               <span className="font-mono text-xs text-olive">EZINE_V1</span>
               {isOwner && cell.current_stage === 'FORMING' && (
@@ -145,6 +223,30 @@ export default async function CellPage({ params }: { params: { slug: string } })
             </p>
           )}
         </div>
+
+        {/* ── Latest publication thumbnail ──────────────────── */}
+        {thumbUrl && latestPub && (
+          <Link
+            href={`/cells/${cell.slug}/publication/${latestPub.cycle}`}
+            className="block mb-6 border border-near-black/20 overflow-hidden hover:border-near-black transition-colors group"
+          >
+            <div className="flex items-stretch">
+              <div className="w-40 shrink-0 overflow-hidden bg-near-black/5">
+                <img
+                  src={thumbUrl}
+                  alt={`Cycle ${latestPub.cycle} publication`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="px-5 py-4 flex flex-col justify-center">
+                <p className="font-mono text-xs text-olive mb-1">Latest Issue — Cycle {latestPub.cycle}</p>
+                <p className="font-mono text-xs group-hover:text-accent-red transition-colors">
+                  View Publication →
+                </p>
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* ── FORMING stage panel ───────────────────────────── */}
         {cell.current_stage === 'FORMING' && (
@@ -202,8 +304,8 @@ export default async function CellPage({ params }: { params: { slug: string } })
               </div>
             )}
 
-            {/* Owner trigger */}
-            {isOwner && quorumMet && (
+            {/* Owner / admin trigger */}
+            {(isOwner || isAdmin) && quorumMet && (
               <div className="border-t border-near-black/10 pt-5">
                 <p className="font-mono text-xs text-olive mb-3">
                   Quorum is met. You can start Briefing now, or wait for more members.
@@ -211,7 +313,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
                 <TriggerBriefingForm cellId={cell.id} />
               </div>
             )}
-            {isOwner && !quorumMet && (
+            {(isOwner || isAdmin) && !quorumMet && (
               <p className="font-mono text-xs text-olive">
                 Briefing starts automatically when {cell.min_members} members join, or when the forming deadline passes (if quorum has been met).
               </p>
@@ -308,17 +410,26 @@ export default async function CellPage({ params }: { params: { slug: string } })
             </div>
             <div className="flex gap-3 flex-wrap">
               {cell.current_stage === 'SUBMISSION' && isMember && !isEditor && (
-                <Link href={`/cells/${cell.slug}/submit`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
-                  Submit Article →
-                </Link>
+                <>
+                  {myInvitationStatus === 'PENDING' && (
+                    <Link href={`/cells/${cell.slug}/brief`} className="font-mono text-xs bg-accent-red text-off-white border border-accent-red px-4 py-2 hover:bg-near-black hover:border-near-black transition-colors">
+                      Accept Invitation →
+                    </Link>
+                  )}
+                  {myInvitationStatus === 'ACCEPTED' && (
+                    <Link href={`/cells/${cell.slug}/submit`} className="font-mono text-xs border border-near-black px-4 py-2 hover:bg-near-black hover:text-off-white transition-colors">
+                      Submit Article →
+                    </Link>
+                  )}
+                  <Link href={`/cells/${cell.slug}/brief`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black transition-colors">
+                    View Brief →
+                  </Link>
+                </>
               )}
-              {cell.current_stage === 'SUBMISSION' && isMember && (
-                <Link href={`/cells/${cell.slug}/brief`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black transition-colors">
-                  View Brief →
-                </Link>
-              )}
-              {cell.current_stage === 'SUBMISSION' && isEditor && (
-                <AdvanceToEditingForm cellId={cell.id} />
+              {cell.current_stage === 'SUBMISSION' && isMember && isEditor && (
+                <div className="flex flex-col items-start gap-2">
+                  <AdvanceToEditingForm cellId={cell.id} submittedCount={submittedCount} />
+                </div>
               )}
               {cell.current_stage === 'EDITING' && isEditor && (
                 <Link href={`/cells/${cell.slug}/edit`} className="font-mono text-xs bg-near-black text-off-white border border-near-black px-4 py-2 hover:bg-accent-red hover:border-accent-red transition-colors">
@@ -336,16 +447,14 @@ export default async function CellPage({ params }: { params: { slug: string } })
                 </Link>
               )}
               {(cell.current_stage === 'PROMOTION' || cell.current_stage === 'COMPLETE') && (
-                <>
-                  <Link href={`/cells/${cell.slug}/publication/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black transition-colors">
-                    View Publication →
-                  </Link>
-                  {(isEditor || isOwner || isAdmin) && (
-                    <Link href={`/cells/${cell.slug}/layout/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black text-olive hover:text-near-black transition-colors">
-                      Layout Editor
-                    </Link>
-                  )}
-                </>
+                <Link href={`/cells/${cell.slug}/publication/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black transition-colors">
+                  View Publication →
+                </Link>
+              )}
+              {cell.current_stage === 'COMPLETE' && (isEditor || isOwner || isAdmin) && (
+                <Link href={`/cells/${cell.slug}/layout/${cell.current_cycle}`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black text-olive hover:text-near-black transition-colors">
+                  Layout Editor
+                </Link>
               )}
               {cell.current_stage === 'PROMOTION' && isOwner && (
                 <AdvanceToCompleteForm cellId={cell.id} />
@@ -358,7 +467,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
                   existingStatus={retroStatus}
                 />
               )}
-              {(isEditor || isOwner || isAdmin) && ['EDITING', 'PROMOTION', 'COMPLETE'].includes(cell.current_stage) && (
+              {(isEditor || isOwner || isAdmin) && cell.current_stage === 'EDITING' && (
                 <Link href={`/cells/${cell.slug}/settings/design`} className="font-mono text-xs border border-near-black/30 px-4 py-2 hover:border-near-black text-olive hover:text-near-black transition-colors">
                   House Style
                 </Link>
@@ -408,6 +517,9 @@ export default async function CellPage({ params }: { params: { slug: string } })
                           >
                             {m.profiles?.display_name ?? m.profiles?.username ?? 'Unknown'}
                           </Link>
+                          {m.user_id === cell.owner_id && (
+                            <span className="font-mono text-xs border border-near-black/30 px-1.5 py-0.5 text-near-black/50">owner</span>
+                          )}
                           {m.user_id === user?.id && (
                             <span className="font-mono text-xs text-olive">(you)</span>
                           )}

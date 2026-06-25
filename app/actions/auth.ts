@@ -106,7 +106,10 @@ export async function signInWithMagicLink(
   return { error: null }
 }
 
-export async function signInWithGoogle(): Promise<never> {
+export async function signInWithGoogle(
+  _prevState: AuthState,
+  _formData: FormData
+): Promise<AuthState> {
   const supabase = createClient()
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -118,7 +121,7 @@ export async function signInWithGoogle(): Promise<never> {
   })
 
   if (error || !data.url) {
-    throw new Error(error?.message ?? 'Failed to initialise Google sign-in')
+    return { error: error?.message ?? 'Google sign-in is not available. Please use email instead.' }
   }
 
   redirect(data.url)
