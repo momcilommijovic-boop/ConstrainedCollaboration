@@ -97,7 +97,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-8 py-12 max-w-4xl">
+      <main className="flex-1 px-10 py-10 w-full max-w-6xl">
         <h1 className="font-serif-display text-4xl mb-1">
           {profile?.display_name ?? profile?.username}
         </h1>

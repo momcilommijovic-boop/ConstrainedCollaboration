@@ -24,11 +24,11 @@ export function DemoNarration({ state }: { state: DemoState | null }) {
         position: 'fixed',
         top: 20,
         right: 20,
-        width: 320,
+        width: 460,
         zIndex: 9998,
         background: 'rgba(26,26,24,0.92)',
         color: '#F5F2EC',
-        padding: '20px',
+        padding: '28px',
         border: '1px solid rgba(245,242,236,0.15)',
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.4s ease',
@@ -38,10 +38,10 @@ export function DemoNarration({ state }: { state: DemoState | null }) {
       <p
         style={{
           fontFamily: 'monospace',
-          fontSize: '10px',
+          fontSize: '11px',
           letterSpacing: '0.15em',
           color: '#C0392B',
-          marginBottom: '12px',
+          marginBottom: '14px',
           textTransform: 'uppercase',
         }}
       >
@@ -50,9 +50,9 @@ export function DemoNarration({ state }: { state: DemoState | null }) {
       <p
         style={{
           fontFamily: 'var(--font-dm-serif, Georgia, serif)',
-          fontSize: '15px',
-          lineHeight: '1.55',
-          marginBottom: '16px',
+          fontSize: '18px',
+          lineHeight: '1.6',
+          marginBottom: '20px',
           color: '#F5F2EC',
         }}
       >

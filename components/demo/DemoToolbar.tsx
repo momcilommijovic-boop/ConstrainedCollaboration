@@ -20,7 +20,7 @@ function DemoToolbarInner() {
   const [showComplete, setShowComplete] = useState(false)
 
   useEffect(() => {
-    const runner = new DemoRunner((route) => router.push(route))
+    const runner = new DemoRunner((route) => router.push(route), () => router.refresh())
     runner.setSteps(DEMO_STEPS)
     const unsub = runner.subscribe((s) => {
       setState(s)

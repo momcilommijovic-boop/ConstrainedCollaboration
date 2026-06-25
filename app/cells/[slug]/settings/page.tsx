@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { CellSettingsForm } from '@/components/cell/CellSettingsForm'
 import type { EzineStrategyConfig } from '@/lib/strategies/ezine'
 
@@ -43,41 +42,22 @@ export default async function CellSettingsPage({ params }: { params: { slug: str
     .eq('status', 'ACTIVE')
 
   return (
-    <div className="min-h-screen bg-off-white flex flex-col">
-      <header className="border-b border-near-black/20 px-8 py-4 flex items-center justify-between">
-        <Link href="/" className="font-serif-display text-xl tracking-tight">
-          Quorum
-        </Link>
-        <div className="flex items-center gap-6">
-          {userDisplayName && (
-            <span className="font-mono text-xs text-olive">{userDisplayName}</span>
-          )}
-          <Link
-            href={`/cells/${params.slug}`}
-            className="font-mono text-xs text-olive hover:text-near-black transition-colors"
-          >
-            ← {cell.title}
-          </Link>
-        </div>
-      </header>
+    <div className="px-10 py-8">
+      <p className="font-mono text-xs uppercase tracking-widest text-olive mb-4">Settings</p>
+      <h1 className="font-serif-display text-4xl mb-2">Cell Settings</h1>
+      <p className="font-mono text-xs text-olive mb-10">
+        Settings can only be changed while the Cell is in the Forming stage.
+      </p>
 
-      <main className="flex-1 px-8 py-12 max-w-2xl">
-        <p className="font-mono text-xs uppercase tracking-widest text-olive mb-4">Settings</p>
-        <h1 className="font-serif-display text-4xl mb-2">Cell Settings</h1>
-        <p className="font-mono text-xs text-olive mb-10">
-          Settings can only be changed while the Cell is in the Forming stage.
-        </p>
-
-        <CellSettingsForm
-          cellId={cell.id}
-          title={cell.title}
-          description={cell.description}
-          memberCap={cell.member_cap}
-          minMembers={cell.min_members}
-          currentMemberCount={memberCount ?? 0}
-          config={cell.strategy_config}
-        />
-      </main>
+      <CellSettingsForm
+        cellId={cell.id}
+        title={cell.title}
+        description={cell.description}
+        memberCap={cell.member_cap}
+        minMembers={cell.min_members}
+        currentMemberCount={memberCount ?? 0}
+        config={cell.strategy_config}
+      />
     </div>
   )
 }

@@ -84,6 +84,7 @@ export const DEMO_STEPS: DemoStep[] = [
         const userId = ctx.users[acc.username]?.id
         if (userId) {
           await ctx.callApi('join-cell', { asUserId: userId, cellSlug: DEMO_CELL_SLUG })
+          ctx.refresh()
           await new Promise<void>((r) => setTimeout(r, 1200))
         }
       }
@@ -99,6 +100,7 @@ export const DEMO_STEPS: DemoStep[] = [
     action: async (ctx: DemoContext) => {
       const editorId = ctx.users[EDITOR.username]?.id
       if (editorId) await ctx.callApi('trigger-briefing', { asUserId: editorId, cellSlug: DEMO_CELL_SLUG })
+      ctx.refresh()
       ctx.highlight('editor-badge')
     },
   },
@@ -130,6 +132,7 @@ export const DEMO_STEPS: DemoStep[] = [
         inviteeIds: [writer1Id, writer2Id, writer3Id].filter(Boolean),
       })
       ctx.briefId = result.briefId as string
+      ctx.refresh()
     },
   },
   {
@@ -145,6 +148,7 @@ export const DEMO_STEPS: DemoStep[] = [
         const userId = ctx.users[acc.username]?.id
         if (userId && ctx.briefId) {
           await ctx.callApi('respond-invitation', { asUserId: userId, briefId: ctx.briefId })
+          ctx.refresh()
           await new Promise<void>((r) => setTimeout(r, 1000))
         }
       }
@@ -200,6 +204,7 @@ export const DEMO_STEPS: DemoStep[] = [
           title: content.title as string,
           body: content.body as string,
         })
+        ctx.refresh()
         await new Promise<void>((r) => setTimeout(r, 1200))
       }
     },
@@ -214,6 +219,7 @@ export const DEMO_STEPS: DemoStep[] = [
     action: async (ctx: DemoContext) => {
       if (ctx.cellId) await ctx.callApi('advance-to-editing', { cellId: ctx.cellId })
       await ctx.signIn(EDITOR.email)
+      ctx.refresh()
       ctx.highlight('submission-review-panel')
     },
   },
@@ -236,14 +242,17 @@ export const DEMO_STEPS: DemoStep[] = [
 
       if (jamesSub) {
         await ctx.callApi('review-submission', { submissionId: jamesSub.id, status: 'ACCEPTED' })
+        ctx.refresh()
         await new Promise<void>((r) => setTimeout(r, 1000))
       }
       if (priyaSub) {
         await ctx.callApi('review-submission', { submissionId: priyaSub.id, status: 'ACCEPTED' })
+        ctx.refresh()
         await new Promise<void>((r) => setTimeout(r, 1000))
       }
       if (leoSub) {
         await ctx.callApi('review-submission', { submissionId: leoSub.id, status: 'ACCEPTED' })
+        ctx.refresh()
         await new Promise<void>((r) => setTimeout(r, 1000))
       }
 
@@ -285,6 +294,7 @@ export const DEMO_STEPS: DemoStep[] = [
       if (!ctx.cellId) return
       const result = await ctx.callApi('publish-publication', { cellId: ctx.cellId })
       ctx.publicationId = result.publicationId as string
+      ctx.refresh()
     },
   },
   {
@@ -328,6 +338,7 @@ export const DEMO_STEPS: DemoStep[] = [
           cellId: ctx.cellId,
         })
       }
+      ctx.refresh()
       ctx.highlight('merit-scores')
     },
   },

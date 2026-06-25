@@ -117,7 +117,7 @@ export default async function BrowseCellsPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-8 py-12 max-w-4xl">
+      <main className="flex-1 px-10 py-10 w-full max-w-6xl">
         <div className="flex items-baseline justify-between mb-8">
           <h1 className="font-serif-display text-4xl">Open Cells</h1>
           <span className="font-mono text-xs text-olive">

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { TriggerBriefingForm } from '@/components/cell/TriggerBriefingForm'
 import { AdvanceToEditingForm } from '@/components/submission/AdvanceToEditingForm'
 import { AdvanceToCompleteForm } from '@/components/promotion/AdvanceToCompleteForm'
-import { StageTimeline } from '@/components/cell/StageTimeline'
 import { DeadlineCounter } from '@/components/cell/DeadlineCounter'
 import { JoinCellButton } from '@/components/cell/JoinCellButton'
 import { GenerateRetrospectiveButton } from '@/components/retrospective/GenerateRetrospectiveButton'
@@ -122,32 +121,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
   }
 
   return (
-    <div className="min-h-screen bg-off-white flex flex-col">
-      <header className="border-b border-near-black/20 px-8 py-4 flex items-center justify-between">
-        <Link href="/" className="font-serif-display text-xl tracking-tight">
-          Quorum
-        </Link>
-        <div className="flex items-center gap-6">
-          {userDisplayName && (
-            <span className="font-mono text-xs text-olive">{userDisplayName}</span>
-          )}
-          <Link href="/cells" className="font-mono text-xs text-olive hover:text-near-black transition-colors">
-            All Cells
-          </Link>
-          {user && (
-            <Link href="/dashboard" className="font-mono text-xs text-olive hover:text-near-black transition-colors">
-              Dashboard
-            </Link>
-          )}
-        </div>
-      </header>
-
-      <main className="flex-1 px-8 py-10 max-w-4xl">
-
-        {/* Stage timeline */}
-        <div className="mb-10" data-demo-highlight="stage-timeline">
-          <StageTimeline currentStage={cell.current_stage} />
-        </div>
+    <div className="px-10 py-8">
 
         {/* Title */}
         <div className="mb-8">
@@ -408,7 +382,7 @@ export default async function CellPage({ params }: { params: { slug: string } })
         </div>
 
         {/* ── Member table ──────────────────────────────────── */}
-        <div className="border border-near-black/20" data-demo-highlight="member-list">
+        <div className="border border-near-black/20 mb-10" data-demo-highlight="member-list">
           <div className="px-5 py-3 border-b border-near-black/20 flex items-center justify-between">
             <p className="font-mono text-xs uppercase tracking-widest text-olive">Members</p>
             <span className="font-mono text-xs text-olive">{memberCount}/{cell.member_cap}</span>
@@ -460,7 +434,6 @@ export default async function CellPage({ params }: { params: { slug: string } })
           )}
         </div>
 
-      </main>
     </div>
   )
 }

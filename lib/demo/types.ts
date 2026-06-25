@@ -16,6 +16,7 @@ export type DemoContext = {
   briefId: string | null
   publicationId: string | null
   push: (route: string) => void
+  refresh: () => void
   highlight: (elementId: string | null) => void
   fillForm: (selector: string, value: string) => void
   signIn: (email: string) => Promise<void>

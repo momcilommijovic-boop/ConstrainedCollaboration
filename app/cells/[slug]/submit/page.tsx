@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { SubmissionForm } from '@/components/submission/SubmissionForm'
 import { ResubmitForm } from '@/components/submission/ResubmitForm'
-import { StageTimeline } from '@/components/cell/StageTimeline'
 import { DeadlineCounter } from '@/components/cell/DeadlineCounter'
 
 export default async function SubmitPage({ params }: { params: { slug: string } }) {
@@ -98,28 +97,7 @@ export default async function SubmitPage({ params }: { params: { slug: string } 
     stage === 'EDITING' && submission?.status === 'REWORK_REQUESTED'
 
   return (
-    <div className="min-h-screen bg-off-white flex flex-col">
-      <header className="border-b border-near-black/20 px-8 py-4 flex items-center justify-between">
-        <Link href="/" className="font-serif-display text-xl tracking-tight">
-          Quorum
-        </Link>
-        <div className="flex items-center gap-6">
-          {userDisplayName && (
-            <span className="font-mono text-xs text-olive">{userDisplayName}</span>
-          )}
-          <Link
-            href={`/cells/${params.slug}`}
-            className="font-mono text-xs text-olive hover:text-near-black transition-colors"
-          >
-            ← {cell.title}
-          </Link>
-        </div>
-      </header>
-
-      <main className="flex-1 px-8 py-12 max-w-3xl">
-        <div className="mb-8">
-          <StageTimeline currentStage={cell.current_stage} />
-        </div>
+    <div className="px-10 py-8">
         <p className="font-mono text-xs uppercase tracking-widest text-olive mb-4">
           Cycle {cell.current_cycle} — Submit
         </p>
@@ -286,7 +264,6 @@ export default async function SubmitPage({ params }: { params: { slug: string } 
             )}
           </>
         )}
-      </main>
     </div>
   )
 }

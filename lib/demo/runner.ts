@@ -12,12 +12,14 @@ export class DemoRunner {
   private stepStartTime = 0
   private stepDuration = 0
   private pushFn: (route: string) => void
+  private refreshFn: () => void
 
   // Demo context mutable state
   private ctx: DemoContext
 
-  constructor(pushFn: (route: string) => void) {
+  constructor(pushFn: (route: string) => void, refreshFn: () => void = () => {}) {
     this.pushFn = pushFn
+    this.refreshFn = refreshFn
     this.steps = []
     this.ctx = this.buildContext()
   }
@@ -33,6 +35,7 @@ export class DemoRunner {
       briefId: null,
       publicationId: null,
       push: this.pushFn,
+      refresh: this.refreshFn,
       highlight: (id) => {
         if (typeof document === 'undefined') return
         if (id) document.body.setAttribute('data-demo-highlight', id)
